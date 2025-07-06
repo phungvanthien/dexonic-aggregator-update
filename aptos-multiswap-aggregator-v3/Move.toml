@@ -1,0 +1,18 @@
+[package]
+name = "AptosMultiswapAggregator"
+version = "1.0.0"
+authors = ["AptosSwap Team <team@aptosswap.com>"]
+
+[addresses]
+aggregator = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
+liquidswap = "0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12"
+econia = "0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5"
+aptos_framework = "0x1"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
+AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "main" }
+
+
+[dev-dependencies]
+AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token", rev = "main" }
