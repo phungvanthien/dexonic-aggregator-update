@@ -150,12 +150,15 @@ function useMarketOverview() {
     { pair: "APT/USDC", price: "-", change: "-", positive: true },
     { pair: "USDT/USDC", price: "-", change: "-", positive: true },
     { pair: "WETH/APT", price: "-", change: "-", positive: true },
+    { pair: "WETH/USDC", price: "-", change: "-", positive: true },
+    { pair: "WBTC/APT", price: "-", change: "-", positive: true },
+    { pair: "WBTC/USDC", price: "-", change: "-", positive: true },
   ])
   useEffect(() => {
     async function fetchMarket() {
       try {
         const res = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=aptos,usd-coin,tether,ethereum&vs_currencies=usd&include_24hr_change=true"
+          "https://api.coingecko.com/api/v3/simple/price?ids=aptos,usd-coin,tether,ethereum,wrapped-bitcoin&vs_currencies=usd&include_24hr_change=true"
         )
         const data = await res.json()
         // APT/USDC
@@ -164,11 +167,18 @@ function useMarketOverview() {
         // USDT/USDC
         const usdtPrice = data.tether.usd
         const usdtChange = data.tether.usd_24h_change
-        // WETH/APT
+        // WETH/USDC
         const ethPrice = data.ethereum.usd
         const ethChange = data.ethereum.usd_24h_change
+        // WETH/APT
         const wethApt = ethPrice / aptPrice
         const wethAptChange = ethChange - aptChange // xấp xỉ
+        // WBTC/USDC
+        const wbtcPrice = data["wrapped-bitcoin"].usd
+        const wbtcChange = data["wrapped-bitcoin"].usd_24h_change
+        // WBTC/APT
+        const wbtcApt = wbtcPrice / aptPrice
+        const wbtcAptChange = wbtcChange - aptChange // xấp xỉ
         setMarketData([
           {
             pair: "APT/USDC",
@@ -187,6 +197,24 @@ function useMarketOverview() {
             price: `${wethApt.toFixed(3)}`,
             change: `${wethAptChange >= 0 ? "+" : ""}${wethAptChange.toFixed(2)}%`,
             positive: wethAptChange >= 0,
+          },
+          {
+            pair: "WETH/USDC",
+            price: `$${ethPrice.toFixed(3)}`,
+            change: `${ethChange >= 0 ? "+" : ""}${ethChange.toFixed(2)}%`,
+            positive: ethChange >= 0,
+          },
+          {
+            pair: "WBTC/APT",
+            price: `${wbtcApt.toFixed(3)}`,
+            change: `${wbtcAptChange >= 0 ? "+" : ""}${wbtcAptChange.toFixed(2)}%`,
+            positive: wbtcAptChange >= 0,
+          },
+          {
+            pair: "WBTC/USDC",
+            price: `$${wbtcPrice.toFixed(3)}`,
+            change: `${wbtcChange >= 0 ? "+" : ""}${wbtcChange.toFixed(2)}%`,
+            positive: wbtcChange >= 0,
           },
         ])
       } catch (e) {
@@ -454,56 +482,74 @@ export default function SwapPage() {
       alert("Please connect your Petra wallet first!")
       return
     }
-
+    // Kiểm tra bestQuote
+    if (!bestQuote || Number.parseFloat(bestQuote.outputAmount) <= 0) {
+      alert("Không có báo giá khả dụng hoặc output bằng 0. Vui lòng thử lại hoặc chọn cặp token khác.")
+      return
+    }
+    // Kiểm tra số dư
+    const fromBalanceNum = Number(fromBalance)
+    const fromAmountNum = Number(fromAmount)
+    if (!isNaN(fromBalanceNum) && !isNaN(fromAmountNum) && fromBalanceNum < fromAmountNum) {
+      alert("Số dư không đủ để thực hiện swap!")
+      return
+    }
     setIsSwapping(true)
-
     try {
       // Convert amount to octas
       const amountInOctas = Math.floor(Number.parseFloat(fromAmount) * Math.pow(10, fromToken.decimals))
       const minOutputAmount = Math.floor(Number.parseFloat(bestQuote?.outputAmount || "0") * Math.pow(10, toToken.decimals) * 0.95) // 5% slippage
       const deadline = Math.floor(Date.now() / 1000) + 1200 // 20 minutes from now
-
       let transactionPayload
-
+      let typeArgs = [fromToken.address, toToken.address]
+      let args
       if (swapMode === "cross-address") {
-        // Cross-address swap using the aggregator
+        args = [receiverAddress, amountInOctas.toString(), minOutputAmount.toString(), deadline.toString()]
         transactionPayload = {
           type: "entry_function_payload",
           function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator::swap_cross_address_v2`,
-          type_arguments: [fromToken.address, toToken.address],
-          arguments: [
-            receiverAddress,
-            amountInOctas.toString(),
-            minOutputAmount.toString(),
-            deadline.toString(),
-          ],
+          type_arguments: typeArgs,
+          arguments: args,
         }
       } else {
-        // Same-address swap
+        args = [amountInOctas.toString(), minOutputAmount.toString(), deadline.toString()]
         transactionPayload = {
           type: "entry_function_payload",
           function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator::swap_exact_input`,
-          type_arguments: [fromToken.address, toToken.address],
-          arguments: [
-            amountInOctas.toString(),
-            minOutputAmount.toString(),
-            deadline.toString(),
-          ],
+          type_arguments: typeArgs,
+          arguments: args,
         }
       }
-
-      console.log("Executing swap with payload:", transactionPayload)
-      
+      // Log chi tiết để debug
+      console.log("[DEBUG SWAP] Payload:", transactionPayload)
+      console.log("[DEBUG SWAP] bestQuote:", bestQuote)
+      console.log("[DEBUG SWAP] fromAmount:", fromAmount, "fromToken:", fromToken, "toToken:", toToken)
+      console.log("[DEBUG SWAP] type_arguments:", typeArgs, "arguments:", args)
+      // Kiểm tra bất thường
+      if (!Array.isArray(typeArgs) || typeArgs.length !== 2 || !typeArgs[0] || !typeArgs[1]) {
+        alert("Type arguments truyền lên contract không hợp lệ!")
+        setIsSwapping(false)
+        return
+      }
+      if (!Array.isArray(args) || args.length < 3) {
+        alert("Arguments truyền lên contract không hợp lệ!")
+        setIsSwapping(false)
+        return
+      }
+      if (Number.parseFloat(bestQuote.outputAmount) <= 0) {
+        alert("Output amount <= 0. Không thể swap!")
+        setIsSwapping(false)
+        return
+      }
       // Sign and submit transaction
       const result = await signAndSubmitTransaction(transactionPayload)
       console.log("Transaction result:", result)
-
       alert("Swap completed successfully!")
       setFromAmount("")
       setQuotes([])
     } catch (error) {
       console.error("Swap failed:", error)
-      alert("Swap failed. Please try again.")
+      alert("Swap failed. Lỗi chi tiết: " + String(error))
     } finally {
       setIsSwapping(false)
     }
@@ -515,6 +561,9 @@ export default function SwapPage() {
           Number.parseFloat(current.outputAmount) > Number.parseFloat(best.outputAmount) ? current : best,
         )
       : null
+
+  // Sắp xếp quotes theo outputAmount giảm dần (lợi nhất lên trên):
+  const sortedQuotes = quotes.slice().sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount));
 
   // Thêm state cho timer
   const REFRESH_INTERVAL = 30 // giây
@@ -995,26 +1044,26 @@ export default function SwapPage() {
                             <table className="min-w-full text-xs text-left">
                               <thead>
                                 <tr className="text-gray-400 border-b border-gray-700">
-                                  <th className="py-1 pr-4">DEX</th>
-                                  <th className="py-1 pr-4">Output</th>
-                                  <th className="py-1 pr-4">Fee (%)</th>
-                                  <th className="py-1 pr-4">Price Impact</th>
-                                  <th className="py-1 pr-4">Route</th>
+                                  <th className="py-1 pr-4 text-left">DEX</th>
+                                  <th className="py-1 pr-4 text-right">Output</th>
+                                  <th className="py-1 pr-4 text-right">Fee (%)</th>
+                                  <th className="py-1 pr-4 text-right">Price Impact</th>
+                                  <th className="py-1 pr-4 text-left">Route</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {quotes.map((q, idx) => (
+                                {sortedQuotes.map((q, idx) => (
                                   <tr key={q.dex} className={bestQuote && q.dex === bestQuote.dex ? "bg-yellow-900/20" : ""}>
-                                    <td className="py-1 pr-4 font-semibold text-white flex items-center">
+                                    <td className="py-1 pr-4 font-semibold text-white text-left inline-flex items-center">
                                       {q.dex}
                                       {bestQuote && q.dex === bestQuote.dex && (
                                         <span className="ml-2 text-yellow-400 font-bold">Best</span>
                                       )}
                                     </td>
-                                    <td className="py-1 pr-4 text-white">{q.outputAmount}</td>
-                                    <td className="py-1 pr-4 text-white">{q.fee}</td>
-                                    <td className="py-1 pr-4 text-white">{q.priceImpact}</td>
-                                    <td className="py-1 pr-4 text-white">{q.route.join(" → ")}</td>
+                                    <td className="py-1 pr-4 text-white text-right">{q.outputAmount}</td>
+                                    <td className="py-1 pr-4 text-white text-right">{q.fee}</td>
+                                    <td className="py-1 pr-4 text-white text-right">{q.priceImpact}</td>
+                                    <td className="py-1 pr-4 text-white text-left">{q.route.join(" → ")}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1028,11 +1077,13 @@ export default function SwapPage() {
                     <Button
                       onClick={executeSwap}
                       disabled={
-                        !connected || 
-                        !fromAmount || 
-                        Number.parseFloat(fromAmount) <= 0 || 
+                        !connected ||
+                        !fromAmount ||
+                        Number.parseFloat(fromAmount) <= 0 ||
                         isSwapping ||
-                        (swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === ""))
+                        (swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === "")) ||
+                        !bestQuote || Number.parseFloat(bestQuote.outputAmount) <= 0 ||
+                        (Number(fromBalance) < Number(fromAmount))
                       }
                       className="swap-execute-button w-full font-bold py-4 rounded-xl text-lg"
                     >
@@ -1076,29 +1127,29 @@ export default function SwapPage() {
             {/* Right Sidebar - Market Info */}
             <div className="hidden xl:block w-80">
               {/* Market Overview */}
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-2">Market Overview</h3>
-                <div className="rounded-xl bg-gray-900 p-4">
+              <Card className="swap-card">
+                <CardContent className="p-4">
+                  <h3 className="text-white font-semibold mb-3">Market Overview</h3>
                   <table className="w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="text-left">Pair</th>
-                        <th className="text-right">Price</th>
-                        <th className="text-right">24h Change</th>
+                        <th className="text-left text-gray-400 font-normal">Pair</th>
+                        <th className="text-right text-gray-400 font-normal">Price</th>
+                        <th className="text-right text-gray-400 font-normal">24h Change</th>
                       </tr>
                     </thead>
                     <tbody>
                       {marketData.map((row) => (
-                        <tr key={row.pair}>
-                          <td>{row.pair}</td>
-                          <td className="text-right">{row.price}</td>
-                          <td className={`text-right font-semibold ${row.positive ? "text-green-500" : "text-red-500"}`}>{row.change}</td>
+                        <tr key={row.pair} className="border-b border-gray-800 last:border-0">
+                          <td className="py-2 text-white">{row.pair}</td>
+                          <td className="py-2 text-right text-white">{row.price}</td>
+                          <td className={`py-2 text-right font-semibold ${row.positive ? "text-green-400" : "text-red-400"}`}>{row.change}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               <Card className="swap-card">
                 <CardContent className="p-4">
