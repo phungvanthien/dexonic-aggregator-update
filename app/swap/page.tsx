@@ -49,14 +49,14 @@ const tokens: Token[] = [
   {
     symbol: "USDC",
     name: "USD Coin",
-    address: "0xa2eda21a58856fda86451436513b867c97eecb4ba099da5775520e0f7492e852::coin::T",
+    address: "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC",
     decimals: 6,
     logoUrl: "/usdc-logo.svg",
   },
   {
     symbol: "USDT",
     name: "Tether USD",
-    address: "0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b::coin::T",
+    address: "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT",
     decimals: 6,
     logoUrl: "/usdt-logo.svg",
   },
@@ -863,12 +863,14 @@ export default function SwapPage() {
                             onClick={() => setShowToDropdown(!showToDropdown)}
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
-                            <img
-                              src={toToken.logoUrl || "/default-token.svg"}
-                              alt={toToken.symbol}
-                              onError={(e) => { e.currentTarget.src = "/default-token.svg" }}
-                              className="w-6 h-6 rounded-full"
-                            />
+                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+                              <img
+                                src={toToken.logoUrl || "/default-token.svg"}
+                                alt={toToken.symbol}
+                                onError={(e) => { e.currentTarget.src = "/default-token.svg" }}
+                                className="w-5 h-5 object-contain"
+                              />
+                            </div>
                             <span className="font-semibold">{toToken.symbol}</span>
                             {/* Đổi ChevronDown thành ChevronUp */}
                             <ChevronUp className="w-4 h-4" />

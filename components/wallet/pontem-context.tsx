@@ -1,6 +1,14 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useState, useEffect } from 'react'
+
+// Extend Window interface to include aptos
+declare global {
+  interface Window {
+    aptos?: any;
+    pontem?: any;
+  }
+}
 
 interface PontemContextType {
   connected: boolean
@@ -243,10 +251,31 @@ export const PontemProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error("Pontem wallet not available");
       }
       
-      // Sign and submit transaction
-      const response = await pontem.signAndSubmitTransaction(payload);
-      console.log("Pontem transaction response:", response);
-      return response;
+      // Try using window.aptos first (Pontem Wallet 2.6.21 standard)
+      if (typeof window !== "undefined" && window.aptos) {
+        console.log("Using window.aptos for transaction");
+        const response = await window.aptos.signAndSubmitTransaction(payload);
+        console.log("Pontem transaction response:", response);
+        return response;
+      }
+      
+      // Fallback to pontem object if window.aptos not available
+      if (pontem.signAndSubmitTransaction) {
+        console.log("Using pontem.signAndSubmitTransaction");
+        const response = await pontem.signAndSubmitTransaction(payload);
+        console.log("Pontem transaction response:", response);
+        return response;
+      }
+      
+      // Try alternative method names
+      if (pontem.signTransaction) {
+        console.log("Using pontem.signTransaction");
+        const response = await pontem.signTransaction(payload);
+        console.log("Pontem transaction response:", response);
+        return response;
+      }
+      
+      throw new Error("No compatible transaction signing method found");
     } catch (error) {
       console.error("Pontem transaction failed:", error);
       throw error;
