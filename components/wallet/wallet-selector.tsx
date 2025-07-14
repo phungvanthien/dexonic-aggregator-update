@@ -84,16 +84,16 @@ export const WalletSelector: React.FC = () => {
     return (
       <div className="flex flex-col space-y-2">
         <Button
-          onClick={() => window.open('https://petra.app/', '_blank')}
+          onClick={() => window.open('https://pontem.network/', '_blank')}
           variant="outline"
           size="sm"
           className="swap-button-secondary"
         >
           <Wallet className="w-4 h-4 mr-2" />
-          Install Petra
+          Install Pontem
         </Button>
         <div className="text-xs text-gray-400 text-center">
-          Petra Wallet not detected
+          Pontem Wallet not detected
         </div>
       </div>
     )

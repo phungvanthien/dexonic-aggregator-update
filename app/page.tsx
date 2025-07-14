@@ -225,8 +225,9 @@ export default function LandingPage() {
       <nav className="relative z-50 bg-black/80 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-              AptosSwap
+            <div className="flex items-center">
+              <img src="/dexonic_gold.svg" alt="Dexonic Logo" className="h-10 w-10 mr-3 inline-block align-middle" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">Dexonic Dex Aggregator</span>
             </div>
 
             {/* Desktop Menu */}
@@ -395,7 +396,7 @@ export default function LandingPage() {
             <div className="mb-8 max-w-3xl mx-auto">
               <TextGenerateEffect
                 words="Experience lightning-fast swaps with the best rates across multiple DEXs on Aptos. Trade smarter, not harder."
-                className="text-xl md:text-2xl text-gray-300 leading-relaxed"
+                className="text-xl md:text-2xl text-white leading-relaxed"
                 duration={0.8}
               />
             </div>
@@ -481,7 +482,7 @@ export default function LandingPage() {
           <div
             className={`text-center mb-16 transition-all duration-1000 ${isVisible.features ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
           >
-            <h2 className="text-5xl font-bold text-white mb-6">Why Choose AptosSwap?</h2>
+            <h2 className="text-5xl font-bold text-white mb-6">Why Choose Dexonic Dex Aggregator?</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Built for traders who demand the best rates, fastest execution, and maximum security
             </p>
@@ -554,7 +555,7 @@ export default function LandingPage() {
           >
             <h2 className="text-5xl font-bold text-white mb-6">Trusted by Thousands</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Join the growing community of traders who trust AptosSwap for their DeFi needs
+              Join the growing community of traders who trust Dexonic Dex Aggregator for their DeFi needs
             </p>
           </div>
 
@@ -688,7 +689,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold text-white mb-6">What Our Users Say</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Join thousands of satisfied traders who trust AptosSwap for their DeFi needs
+              Join thousands of satisfied traders who trust Dexonic Dex Aggregator for their DeFi needs
             </p>
           </div>
           
@@ -757,7 +758,7 @@ export default function LandingPage() {
                 onClick={scrollToSwap}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-lg"
               >
-                Launch AptosSwap
+                Launch Dexonic Dex Aggregator
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button
@@ -790,7 +791,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold text-white mb-6">FAQs</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Everything you need to know about AptosSwap and DeFi trading
+              Everything you need to know about Dexonic Dex Aggregator and DeFi trading
             </p>
           </div>
 
@@ -803,7 +804,7 @@ export default function LandingPage() {
               >
                 <h3 className="text-lg font-bold text-white flex items-center">
                   <Shield className="w-5 h-5 mr-3 text-yellow-400" />
-                  Is AptosSwap safe to use?
+                  Is Dexonic Dex Aggregator safe to use?
                 </h3>
                 <ChevronDown 
                   className={`w-5 h-5 text-yellow-400 transition-transform duration-300 ${
@@ -814,7 +815,7 @@ export default function LandingPage() {
               {openFAQ === 1 && (
                 <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
                   <p className="text-gray-300 leading-relaxed">
-                    Yes, AptosSwap is built with security as a top priority. Our smart contracts are audited by leading security firms, 
+                    Yes, Dexonic Dex Aggregator is built with security as a top priority. Our smart contracts are audited by leading security firms, 
                     and we use industry-standard security practices. All transactions are executed on the Aptos blockchain, 
                     which provides enterprise-grade security and reliability.
                   </p>
@@ -830,7 +831,7 @@ export default function LandingPage() {
               >
                 <h3 className="text-lg font-bold text-white flex items-center">
                   <Zap className="w-5 h-5 mr-3 text-yellow-400" />
-                  How does AptosSwap find the best rates?
+                  How does Dexonic Dex Aggregator find the best rates?
                 </h3>
                 <ChevronDown 
                   className={`w-5 h-5 text-yellow-400 transition-transform duration-300 ${
@@ -841,7 +842,7 @@ export default function LandingPage() {
               {openFAQ === 2 && (
                 <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
                   <p className="text-gray-300 leading-relaxed">
-                    AptosSwap aggregates liquidity from multiple DEXs including Liquidswap and Econia. Our advanced routing algorithm 
+                    Dexonic Dex Aggregator aggregates liquidity from multiple DEXs including Liquidswap and Econia. Our advanced routing algorithm 
                     automatically finds the best trading path to ensure you get the most favorable rates and lowest fees. 
                     We compare prices across all available pools in real-time.
                   </p>
@@ -868,7 +869,7 @@ export default function LandingPage() {
               {openFAQ === 3 && (
                 <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
                   <p className="text-gray-300 leading-relaxed">
-                    AptosSwap charges a minimal 0.1% fee on all trades, which is among the lowest in the industry. 
+                    Dexonic Dex Aggregator charges a minimal 0.1% fee on all trades, which is among the lowest in the industry. 
                     There are no hidden fees, and all costs are transparently displayed before you confirm any transaction. 
                     We also help you save on gas fees by optimizing transaction routing.
                   </p>
@@ -895,7 +896,7 @@ export default function LandingPage() {
               {openFAQ === 4 && (
                 <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
                   <p className="text-gray-300 leading-relaxed">
-                    No account creation is required! AptosSwap is a non-custodial platform, meaning you maintain full control 
+                    No account creation is required! Dexonic Dex Aggregator is a non-custodial platform, meaning you maintain full control 
                     of your funds. Simply connect your Petra wallet and start trading immediately. Your private keys never leave your device.
                   </p>
                 </div>
@@ -921,7 +922,7 @@ export default function LandingPage() {
               {openFAQ === 5 && (
                 <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
                   <p className="text-gray-300 leading-relaxed">
-                    AptosSwap supports all major tokens on the Aptos blockchain, including APT, USDC, USDT, and hundreds of other tokens. 
+                    Dexonic Dex Aggregator supports all major tokens on the Aptos blockchain, including APT, USDC, USDT, and hundreds of other tokens. 
                     We continuously add new tokens as they become available. You can view the complete list of supported tokens 
                     in our token directory.
                   </p>
@@ -1041,9 +1042,9 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent font-bold text-xl mb-4 md:mb-0">
-              AptosSwap
+              Dexonic Dex Aggregator
             </div>
-            <div className="text-gray-400 text-sm">© 2024 AptosSwap. Built on Aptos blockchain.</div>
+            <div className="text-gray-400 text-sm">© 2024 Dexonic Dex Aggregator. Built on Aptos blockchain.</div>
           </div>
         </div>
       </footer>

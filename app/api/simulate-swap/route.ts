@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the Aptos blockchain to simulate the swap
-    const response = await fetch('https://fullnode.testnet.aptoslabs.com/v1/view', {
+    const response = await fetch('https://fullnode.mainnet.aptoslabs.com/v1/view', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,7 +48,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error simulating swap:', error)
-    
+    // Lấy inputAmount từ request nếu có, fallback về '1' nếu không
+    let inputAmount = '1';
+    try {
+      const body = await request.json();
+      inputAmount = body.inputAmount || '1';
+    } catch {}
     // Return fallback data if the API call fails
     return NextResponse.json({
       outputAmount: (parseInt(inputAmount) * 0.98).toString(), // 2% slippage

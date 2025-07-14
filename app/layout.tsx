@@ -7,9 +7,12 @@ import { MultiWalletProvider } from "@/components/wallet/multi-wallet-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AptosSwap - The Future of DeFi Trading",
-  description: "Experience lightning-fast swaps with the best rates across multiple DEXs on Aptos blockchain.",
-    generator: 'v0.dev'
+  title: "Dexonic Dex Aggregator - The Future of DeFi Trading",
+  description: "Experience lightning-fast swaps with the best rates across multiple DEXs on Aptos blockchain. Powered by Dexonic.",
+  generator: 'v0.dev',
+  icons: [
+    { rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }
+  ]
 }
 
 export default function RootLayout({
@@ -18,10 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-      </head>
+    <html lang="en">
       <body className={inter.className}>
         <MultiWalletProvider>
           {children}

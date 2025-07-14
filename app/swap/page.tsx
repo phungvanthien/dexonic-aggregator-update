@@ -498,7 +498,7 @@ export default function SwapPage() {
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 <img src="/dexonic-logo-yellow-500.svg" alt="Dexonic" className="w-8 h-8 mr-2" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  Dexonic Swap
+                  Dexonic Dex Aggregator
                 </span>
               </Link>
 

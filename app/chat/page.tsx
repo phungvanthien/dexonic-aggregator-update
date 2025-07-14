@@ -449,7 +449,7 @@ export default function ChatPage() {
               <Link href="/" className="flex items-center text-gray-300 hover:text-yellow-400 transition-colors">
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  AptosSwap
+                  Dexonic Dex Aggregator
                 </span>
               </Link>
               <div className="hidden md:block">

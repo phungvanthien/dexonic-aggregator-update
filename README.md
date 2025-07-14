@@ -1,4 +1,4 @@
-# AptosSwap - The Future of DeFi Trading
+# Dexonic Dex Aggregator - The Future of DeFi Trading
 
 A decentralized exchange aggregator on the Aptos blockchain that provides lightning-fast swaps with the best rates across multiple DEXs.
 
@@ -14,7 +14,7 @@ A decentralized exchange aggregator on the Aptos blockchain that provides lightn
 1. **Clone and install dependencies:**
 ```bash
 git clone <repository-url>
-cd AptosSwap
+cd DexonicDexAggregator
 pnpm install
 ```
 
@@ -29,7 +29,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 ## 🏗️ Project Structure
 
 ```
-AptosSwap/
+DexonicDexAggregator/
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes
 │   ├── swap/              # Swap interface
