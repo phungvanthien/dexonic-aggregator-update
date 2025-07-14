@@ -14,6 +14,7 @@ import { MobileMenuBar } from "@/components/swap/mobile-menu-bar"
 import { MultiWalletSelector } from "@/components/wallet/multi-wallet-selector"
 import { AdminInitializer } from "@/components/swap/admin-initializer"
 import { WalletDebug } from "@/components/wallet/wallet-debug"
+import { Progress } from "@/components/ui/progress"
 
 interface Token {
   symbol: string
@@ -460,6 +461,34 @@ export default function SwapPage() {
         )
       : null
 
+  // Thêm state cho timer
+  const REFRESH_INTERVAL = 30 // giây
+  const [refreshTimer, setRefreshTimer] = useState(REFRESH_INTERVAL)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Reset timer khi input thay đổi
+  useEffect(() => {
+    setRefreshTimer(REFRESH_INTERVAL)
+  }, [fromAmount, fromToken, toToken])
+
+  // Đếm ngược và auto-refresh quotes
+  useEffect(() => {
+    if (!fromAmount) return
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setRefreshTimer((prev) => {
+        if (prev <= 1) {
+          fetchQuotes()
+          return REFRESH_INTERVAL
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [fromAmount, fromToken, toToken])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
       {/* Animated Background */}
@@ -832,6 +861,18 @@ export default function SwapPage() {
                           }
                         </span>
                       </div>
+                      {/* Thanh thời gian refresh */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <Progress value={(refreshTimer/REFRESH_INTERVAL)*100} className="w-32 h-2 bg-gray-700" />
+                        <span className="text-xs text-gray-400">{refreshTimer}s</span>
+                        <button
+                          className="ml-2 px-2 py-1 rounded bg-yellow-500 text-black text-xs font-semibold hover:bg-yellow-400 transition-colors"
+                          onClick={() => { fetchQuotes(); setRefreshTimer(REFRESH_INTERVAL) }}
+                          title="Refresh quotes now"
+                        >
+                          Refresh
+                        </button>
+                      </div>
                       <div className="token-selector rounded-xl p-4" ref={toDropdownRef}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -852,9 +893,8 @@ export default function SwapPage() {
                                 className="w-5 h-5 object-contain"
                               />
                             </div>
-                            <span className="font-semibold">{toToken.symbol}</span>
-                            {/* Đổi ChevronDown thành ChevronUp */}
-                            <ChevronUp className="w-4 h-4" />
+                            <span className="ml-2 font-semibold text-white">{toToken.symbol}</span>
+                            <ChevronDown className="w-4 h-4 ml-1 text-white" />
                           </button>
                         </div>
                       </div>
