@@ -463,31 +463,38 @@ export default function SwapPage() {
 
   // Thêm state cho timer
   const REFRESH_INTERVAL = 30 // giây
-  const [refreshTimer, setRefreshTimer] = useState(REFRESH_INTERVAL)
+  // Thay thế state timer:
+  const REFRESH_INTERVAL_MS = REFRESH_INTERVAL * 1000
+  const [refreshTimerMs, setRefreshTimerMs] = useState(REFRESH_INTERVAL_MS)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Reset timer khi input thay đổi
   useEffect(() => {
-    setRefreshTimer(REFRESH_INTERVAL)
+    setRefreshTimerMs(REFRESH_INTERVAL_MS)
   }, [fromAmount, fromToken, toToken])
 
-  // Đếm ngược và auto-refresh quotes
+  // Thay đổi useEffect cho timer:
   useEffect(() => {
-    if (!fromAmount) return
-    if (timerRef.current) clearInterval(timerRef.current)
+    if (isLoadingQuotes) {
+      setRefreshTimerMs(REFRESH_INTERVAL_MS)
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+    if (!fromAmount || isLoadingQuotes) return
     timerRef.current = setInterval(() => {
-      setRefreshTimer((prev) => {
-        if (prev <= 1) {
+      setRefreshTimerMs((prev) => {
+        if (prev <= 50) {
+          clearInterval(timerRef.current!)
           fetchQuotes()
-          return REFRESH_INTERVAL
+          return REFRESH_INTERVAL_MS
         }
-        return prev - 1
+        return prev - 50
       })
-    }, 1000)
+    }, 50)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [fromAmount, fromToken, toToken])
+  }, [fromAmount, fromToken, toToken, isLoadingQuotes])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -861,18 +868,6 @@ export default function SwapPage() {
                           }
                         </span>
                       </div>
-                      {/* Thanh thời gian refresh */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <Progress value={(refreshTimer/REFRESH_INTERVAL)*100} className="w-32 h-2 bg-gray-700" />
-                        <span className="text-xs text-gray-400">{refreshTimer}s</span>
-                        <button
-                          className="ml-2 px-2 py-1 rounded bg-yellow-500 text-black text-xs font-semibold hover:bg-yellow-400 transition-colors"
-                          onClick={() => { fetchQuotes(); setRefreshTimer(REFRESH_INTERVAL) }}
-                          title="Refresh quotes now"
-                        >
-                          Refresh
-                        </button>
-                      </div>
                       <div className="token-selector rounded-xl p-4" ref={toDropdownRef}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -886,55 +881,37 @@ export default function SwapPage() {
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
                             <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-                              <img
-                                src={toToken.logoUrl || "/default-token.svg"}
-                                alt={toToken.symbol}
-                                onError={(e) => { e.currentTarget.src = "/default-token.svg" }}
-                                className="w-5 h-5 object-contain"
-                              />
+                              <img src={toToken.logoUrl || "/default-token.svg"} alt={toToken.symbol} className="w-5 h-5 object-contain" />
                             </div>
                             <span className="ml-2 font-semibold text-white">{toToken.symbol}</span>
                             <ChevronDown className="w-4 h-4 ml-1 text-white" />
                           </button>
                         </div>
                       </div>
-
-                      {/* Token Dropdown */}
-                      {showToDropdown && (
-                        <div ref={toDropdownRef} className="token-dropdown absolute bottom-full left-0 right-0 mb-2 rounded-xl z-50 max-h-48 overflow-y-auto">
-                          {tokens
-                            .filter((token) => token.symbol !== fromToken.symbol)
-                            .map((token) => (
-                              <button
-                                key={token.symbol}
-                                onClick={() => {
-                                  setToToken(token)
-                                  setShowToDropdown(false)
-                                }}
-                                className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl hover:bg-gray-700 transition-colors"
-                              >
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-                                    <img src={token.logoUrl || "/default-token.svg"} alt={token.symbol} className="w-5 h-5 object-contain" />
-                                  </div>
-                                  <div className="text-left">
-                                    <div className="text-white font-semibold">{token.symbol}</div>
-                                    <div className="text-xs text-gray-400">{token.name}</div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-white text-sm font-medium">
-                                    {connected ? (balances[token.symbol] ?? "0.00") : "0.00"}
-                                  </div>
-                                  <div className="text-xs text-gray-400">
-                                    Balance
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                        </div>
-                      )}
                     </div>
+
+                    {/* Thanh thời gian refresh nằm giữa You receive và Compare DEX Quotes */}
+                    {fromAmount && (
+                      <div className="mt-4 mb-4 flex items-center gap-2">
+                        <div className="flex-1" style={{ direction: 'rtl' }}>
+                          {/* Progress bar value: */}
+                          <Progress value={100 * (refreshTimerMs / REFRESH_INTERVAL_MS)} className="h-2 bg-white [&_.bg-primary]:bg-yellow-500" />
+                          {/* Số giây hiển thị: */}
+                          <div className="text-xs text-gray-400 mt-1" style={{ direction: 'ltr' }}>
+                            Price will update in {Math.floor(refreshTimerMs / 1000)}s
+                          </div>
+                        </div>
+                        <button
+                          className="ml-2 px-3 py-1 rounded bg-yellow-500 text-black text-xs font-semibold hover:bg-yellow-400 transition float-right"
+                          onClick={() => { fetchQuotes(); setRefreshTimerMs(REFRESH_INTERVAL_MS) }}
+                          title="Refresh quotes now"
+                          disabled={refreshTimerMs === REFRESH_INTERVAL_MS || isLoadingQuotes}
+                          style={{ minWidth: 70 }}
+                        >
+                          {isLoadingQuotes ? "Refreshing..." : "Refresh"}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Route Information */}
                     {(isLoadingQuotes || quotes.length > 0) && (
