@@ -9,8 +9,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@animeswap.org/v1-sdk": "^1.2.2",
+    "@aries-markets/tssdk": "^0.0.1",
     "@hookform/resolvers": "^3.9.1",
     "@manahippo/aptos-wallet-adapter": "^1.0.10",
+    "@pontem/liquidswap-sdk": "^0.7.3",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

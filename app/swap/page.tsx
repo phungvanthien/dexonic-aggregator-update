@@ -215,14 +215,28 @@ export default function SwapPage() {
 
   // Fetch quotes from the aggregator
   const fetchQuotes = async () => {
-    if (!fromAmount || Number.parseFloat(fromAmount) <= 0) return
+    if (!fromAmount) {
+      setQuotes([])
+      return
+    }
+    // Chuẩn hóa dấu phẩy thành dấu chấm
+    const cleanAmount = fromAmount.replace(',', '.')
+    const parsedAmount = Number.parseFloat(cleanAmount)
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setQuotes([])
+      return
+    }
 
     setIsLoadingQuotes(true)
 
     try {
       // Convert amount to octas (smallest unit)
-      const amountInOctas = Math.floor(Number.parseFloat(fromAmount) * Math.pow(10, fromToken.decimals))
-      
+      const amountInOctas = Math.floor(parsedAmount * Math.pow(10, fromToken.decimals))
+      if (isNaN(amountInOctas) || amountInOctas <= 0) {
+        setQuotes([])
+        setIsLoadingQuotes(false)
+        return
+      }
       // Call the aggregator's simulate_swap function
       const response = await fetch(`/api/simulate-swap`, {
         method: 'POST',
@@ -238,50 +252,17 @@ export default function SwapPage() {
 
       if (response.ok) {
         const data = await response.json()
-        const outputAmount = (Number(data.outputAmount) / Math.pow(10, toToken.decimals)).toFixed(6)
-        
-        const quote: Quote = {
-          dex: data.dexId === 1 ? "Liquidswap" : "Econia",
-          outputAmount,
-          priceImpact: `${(Number(data.priceImpact) / 100).toFixed(2)}%`,
-          fee: `${(Number(data.fee) / 100).toFixed(2)}%`,
-          route: data.route || [fromToken.symbol, toToken.symbol],
+        if (data && data.quotes && Array.isArray(data.quotes)) {
+          setQuotes(data.quotes)
+        } else {
+          setQuotes([])
         }
-        
-        setQuotes([quote])
       } else {
-        // Fallback to mock quotes if API fails
-        const mockQuotes: Quote[] = [
-          {
-            dex: "Liquidswap",
-            outputAmount: (Number.parseFloat(fromAmount) * 1.02).toFixed(6),
-            priceImpact: "0.12%",
-            fee: "0.3%",
-            route: [fromToken.symbol, toToken.symbol],
-          },
-          {
-            dex: "Econia",
-            outputAmount: (Number.parseFloat(fromAmount) * 0.98).toFixed(6),
-            priceImpact: "0.08%",
-            fee: "0.25%",
-            route: [fromToken.symbol, "USDC", toToken.symbol],
-          },
-        ]
-        setQuotes(mockQuotes)
+        setQuotes([])
       }
     } catch (error) {
       console.error("Error fetching quotes:", error)
-      // Fallback to mock quotes
-      const mockQuotes: Quote[] = [
-        {
-          dex: "Liquidswap",
-          outputAmount: (Number.parseFloat(fromAmount) * 1.02).toFixed(6),
-          priceImpact: "0.12%",
-          fee: "0.3%",
-          route: [fromToken.symbol, toToken.symbol],
-        },
-      ]
-      setQuotes(mockQuotes)
+      setQuotes([])
     } finally {
       setIsLoadingQuotes(false)
     }
@@ -921,37 +902,51 @@ export default function SwapPage() {
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-gray-300 flex items-center">
                             <TrendingUp className="w-4 h-4 mr-1" />
-                            Best Route
+                            Compare DEX Quotes
                           </span>
                           {bestQuote && (
                             <Badge className="swap-badge text-xs">
                               <Zap className="w-3 h-3 mr-1" />
-                              {bestQuote.dex}
+                              Best: {bestQuote.dex}
                             </Badge>
                           )}
                         </div>
-
                         {isLoadingQuotes ? (
                           <div className="swap-loading flex items-center space-x-2 p-2 rounded">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
                             <span className="text-sm text-gray-400">Finding best route...</span>
                           </div>
-                        ) : bestQuote ? (
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-400">Price Impact:</span>
-                              <span className="text-white">{bestQuote.priceImpact}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-400">Network Fee:</span>
-                              <span className="text-white">~$0.05</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-400">Route:</span>
-                              <span className="text-white">{bestQuote.route.join(" → ")}</span>
-                            </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs text-left">
+                              <thead>
+                                <tr className="text-gray-400 border-b border-gray-700">
+                                  <th className="py-1 pr-4">DEX</th>
+                                  <th className="py-1 pr-4">Output</th>
+                                  <th className="py-1 pr-4">Fee (%)</th>
+                                  <th className="py-1 pr-4">Price Impact</th>
+                                  <th className="py-1 pr-4">Route</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quotes.map((q, idx) => (
+                                  <tr key={q.dex} className={bestQuote && q.dex === bestQuote.dex ? "bg-yellow-900/20" : ""}>
+                                    <td className="py-1 pr-4 font-semibold text-white flex items-center">
+                                      {q.dex}
+                                      {bestQuote && q.dex === bestQuote.dex && (
+                                        <span className="ml-2 text-yellow-400 font-bold">Best</span>
+                                      )}
+                                    </td>
+                                    <td className="py-1 pr-4 text-white">{q.outputAmount}</td>
+                                    <td className="py-1 pr-4 text-white">{q.fee}</td>
+                                    <td className="py-1 pr-4 text-white">{q.priceImpact}</td>
+                                    <td className="py-1 pr-4 text-white">{q.route.join(" → ")}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     )}
 
