@@ -3,7 +3,7 @@ name = "AptosMultiswapAggregator"
 version = "1.0.0"
 
 [addresses]
-aggregator = "_"
+aggregator = "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc"
 liquidswap = "0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12"
 econia = "0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5"
 
@@ -15,3 +15,19 @@ aggregator = "0x1"
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
 AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "main" }
+
+[testnet]
+private_key = "0x..."
+account = "0x..."
+rest_url = "https://fullnode.testnet.aptoslabs.com"
+faucet_url = "https://faucet.testnet.aptoslabs.com"
+
+[mainnet]
+private_key = "0x..."
+account = "0x..."
+rest_url = "https://fullnode.mainnet.aptoslabs.com"
+
+[local]
+private_key = "0x..."
+account = "0x..."
+rest_url = "http://127.0.0.1:8080"

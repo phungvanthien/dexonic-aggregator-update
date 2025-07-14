@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import "@/styles/swap.css"
-import { ArrowUpDown, TrendingUp, Zap, RefreshCw, ChevronDown, ArrowLeft, LogOut, User, Users } from "lucide-react"
-import { usePetra } from "@/components/wallet/petra-context"
+import { useState, useEffect, useRef } from "react"
+import "../../styles/swap.css"
+import { ArrowUpDown, TrendingUp, Zap, RefreshCw, ChevronDown, ArrowLeft, LogOut, User, Users, ChevronUp } from "lucide-react"
+import { useMultiWallet } from "@/components/wallet/multi-wallet-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ChatButton } from "@/components/chat/chat-button"
 import { MobileMenuBar } from "@/components/swap/mobile-menu-bar"
-import { WalletSelector } from "@/components/wallet/wallet-selector"
+import { MultiWalletSelector } from "@/components/wallet/multi-wallet-selector"
 import { AdminInitializer } from "@/components/swap/admin-initializer"
+import { WalletDebug } from "@/components/wallet/wallet-debug"
 
 interface Token {
   symbol: string
@@ -43,45 +44,108 @@ const tokens: Token[] = [
     name: "Aptos",
     address: "0x1::aptos_coin::AptosCoin",
     decimals: 8,
-    logoUrl: "/placeholder.svg?height=32&width=32",
-  },
-  {
-    symbol: "APDOGE",
-    name: "AptosDoge",
-    address: "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge",
-    decimals: 8,
-    logoUrl: "/placeholder.svg?height=32&width=32",
+    logoUrl: "/aptos-logo.svg",
   },
   {
     symbol: "USDC",
     name: "USD Coin",
     address: "0xa2eda21a58856fda86451436513b867c97eecb4ba099da5775520e0f7492e852::coin::T",
     decimals: 6,
-    logoUrl: "/placeholder.svg?height=32&width=32",
+    logoUrl: "/usdc-logo.svg",
   },
   {
     symbol: "USDT",
     name: "Tether USD",
     address: "0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b::coin::T",
     decimals: 6,
-    logoUrl: "/placeholder.svg?height=32&width=32",
+    logoUrl: "/usdt-logo.svg",
+  },
+  {
+    symbol: "WBTC",
+    name: "Wrapped Bitcoin",
+    address: "0x5e156f6b3c6e0c7e7e0e92ce40938e425c205b5b6c2b5b6b6c2b5b6b6c2b5b6b::coin::T",
+    decimals: 8,
+    logoUrl: "/wbtc-logo.svg",
   },
   {
     symbol: "WETH",
     name: "Wrapped Ethereum",
     address: "0xcc8a89c8dce9693d354449f1f73e60e14e347417854f029db5bc8e7454008abb::coin::T",
     decimals: 8,
-    logoUrl: "/placeholder.svg?height=32&width=32",
-  },
+    logoUrl: "/weth-logo-diamond.svg",
+  }
 ]
 
 // Aggregator configuration
 const AGGREGATOR_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
 const SENDER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
-const RECEIVER_ADDRESS = "0xed401eb09b9b70ba2b258f979534cbe1766b035b7ec67d9636a121099751a16a"
+const RECEIVER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
+
+// Custom hook lấy số dư cho ví đang kết nối (Petra hoặc Pontem)
+function useWalletBalances(tokens: Token[], address: string | null, connected: boolean) {
+  const [balances, setBalances] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!connected || !address) {
+      setBalances({});
+      return;
+    }
+    const fetchBalances = async () => {
+      try {
+        console.log(`Fetching balances for address: ${address}`);
+        // Use the same logic to avoid double /v1/
+        const nodeUrl = process.env.NEXT_PUBLIC_APTOS_NODE_URL || "https://fullnode.mainnet.aptoslabs.com"
+        const baseUrl = nodeUrl.endsWith('/v1') ? nodeUrl.slice(0, -3) : nodeUrl
+        const res = await fetch(`${baseUrl}/v1/accounts/${address}/resources`);
+        if (!res.ok) {
+          console.log(`Failed to fetch resources: ${res.status}`);
+          return;
+        }
+        
+        const resources = await res.json();
+        console.log("All resources:", resources);
+        
+        const newBalances: Record<string, string> = {};
+        
+        // Tìm tất cả CoinStore resources
+        const coinStores = resources.filter((r: any) => r.type.includes("0x1::coin::CoinStore"));
+        console.log("All CoinStore resources:", coinStores);
+        
+        for (const token of tokens) {
+          // Tìm CoinStore cho token chính xác
+          const coinStore = resources.find((r: any) => {
+            const isMatch = r.type === `0x1::coin::CoinStore<${token.address}>`;
+            if (isMatch) {
+              console.log(`Found exact CoinStore for ${token.symbol}:`, r.data);
+            }
+            return isMatch;
+          });
+          
+          if (coinStore && coinStore.data && coinStore.data.coin && coinStore.data.coin.value) {
+            const balance = (Number(coinStore.data.coin.value) / Math.pow(10, token.decimals)).toFixed(6);
+            console.log(`Balance for ${token.symbol}: ${balance}`);
+            newBalances[token.symbol] = balance;
+          } else {
+            console.log(`No CoinStore found for ${token.symbol} (${token.address})`);
+            newBalances[token.symbol] = "0.000000";
+          }
+        }
+        
+        console.log("Final balances:", newBalances);
+        setBalances(newBalances);
+      } catch (error) {
+        console.error("Error fetching balances:", error);
+        setBalances({});
+      }
+    };
+    fetchBalances();
+  }, [connected, address, tokens]);
+
+  return balances;
+}
 
 export default function SwapPage() {
-  const { address, connected, network, signAndSubmitTransaction } = usePetra()
+  const { address, connected, network, signAndSubmitTransaction, availableWallets, connectionStatus, activeWallet } = useMultiWallet()
   const [fromToken, setFromToken] = useState<Token>(tokens[0])
   const [toToken, setToToken] = useState<Token>(tokens[1])
   const [fromAmount, setFromAmount] = useState("")
@@ -92,8 +156,49 @@ export default function SwapPage() {
   const [showFromDropdown, setShowFromDropdown] = useState(false)
   const [showToDropdown, setShowToDropdown] = useState(false)
   const [activeSwapTab, setActiveSwapTab] = useState("swap")
-  const [swapMode, setSwapMode] = useState<"same-address" | "cross-address">("cross-address")
+  const [swapMode, setSwapMode] = useState<"same-address" | "cross-address">("same-address")
   const [receiverAddress, setReceiverAddress] = useState(RECEIVER_ADDRESS)
+
+  // NEW: State for balances
+  const [fromBalance, setFromBalance] = useState<string>("")
+  const [toBalance, setToBalance] = useState<string>("")
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+
+  // 1. Thêm state lưu balances cho tất cả token
+  const [allTokenBalances, setAllTokenBalances] = useState<Record<string, string>>({})
+
+  // Thay thế allTokenBalances bằng balances từ hook mới
+  const balances = useWalletBalances(tokens, address, connected);
+
+  const fromDropdownRef = useRef<HTMLDivElement>(null)
+  const toDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showFromDropdown && fromDropdownRef.current && !fromDropdownRef.current.contains(event.target as Node)) {
+        setShowFromDropdown(false)
+      }
+      if (showToDropdown && toDropdownRef.current && !toDropdownRef.current.contains(event.target as Node)) {
+        setShowToDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showFromDropdown, showToDropdown])
+
+  // Debug logging for wallet connection
+  useEffect(() => {
+    console.log("Wallet connection status:", {
+      connected,
+      address,
+      network,
+      connectionStatus,
+      activeWallet,
+      availableWallets: availableWallets.length
+    })
+  }, [connected, address, network, connectionStatus, activeWallet, availableWallets])
 
   // Check for existing user session
   useEffect(() => {
@@ -191,6 +296,116 @@ export default function SwapPage() {
     }
   }, [fromAmount, fromToken, toToken])
 
+  // NEW: Fetch balance for a given token and address
+  async function fetchTokenBalance(address: string, tokenAddress: string, decimals: number): Promise<string> {
+    try {
+      if (!address) {
+        console.log("No address provided for balance fetch")
+        return "0.00"
+      }
+      
+      console.log(`Fetching balance for token: ${tokenAddress} at address: ${address}`)
+      
+      // Use Aptos public node
+      const nodeUrl = process.env.NEXT_PUBLIC_APTOS_NODE_URL || "https://fullnode.mainnet.aptoslabs.com"
+      
+      // Ensure nodeUrl doesn't end with /v1 to avoid double /v1/v1/
+      const baseUrl = nodeUrl.endsWith('/v1') ? nodeUrl.slice(0, -3) : nodeUrl
+      
+      // Get all resources for the account
+      const res = await fetch(`${baseUrl}/v1/accounts/${address}/resources`)
+      if (!res.ok) {
+        console.log(`Failed to fetch resources for ${address}: ${res.status}`)
+        return "0.00"
+      }
+      
+      const resources = await res.json()
+      // Thêm log toàn bộ resource để debug
+      console.log("All resources for address", address, resources)
+      
+      // Find CoinStore for the token
+      const coinStore = resources.find((r: any) => {
+        const isMatch = r.type === `0x1::coin::CoinStore<${tokenAddress}>`
+        if (isMatch) {
+          console.log(`Found exact CoinStore for ${tokenAddress}:`, r.data)
+        }
+        return isMatch
+      })
+      
+      if (coinStore && coinStore.data && coinStore.data.coin && coinStore.data.coin.value) {
+        const balance = (Number(coinStore.data.coin.value) / Math.pow(10, decimals)).toFixed(6)
+        console.log(`Balance for ${tokenAddress}: ${balance}`)
+        return balance
+      }
+      
+      console.log(`No CoinStore found for ${tokenAddress}`)
+      return "0.000000"
+    } catch (e) {
+      console.error(`Error fetching balance for ${tokenAddress}:`, e)
+      return "0.00"
+    }
+  }
+
+  // 2. Fetch balance cho tất cả token khi ví kết nối hoặc address thay đổi
+  useEffect(() => {
+    let cancelled = false
+    async function fetchAllBalances() {
+      if (connected && address) {
+        const balances: Record<string, string> = {}
+        for (const token of tokens) {
+          balances[token.symbol] = await fetchTokenBalance(address, token.address, token.decimals)
+        }
+        if (!cancelled) setAllTokenBalances(balances)
+      } else {
+        setAllTokenBalances({})
+      }
+    }
+    fetchAllBalances()
+    return () => { cancelled = true }
+  }, [connected, address])
+
+  // NEW: Effect to fetch balances when wallet or token changes
+  useEffect(() => {
+    let cancelled = false
+    async function updateBalances() {
+      console.log(`Balance update triggered - Connected: ${connected}, Address: ${address}`)
+      
+      if (connected && address) {
+        setIsLoadingBalance(true)
+        console.log(`Fetching balances for tokens: ${fromToken.symbol} and ${toToken.symbol}`)
+        
+        try {
+          const [from, to] = await Promise.all([
+            fetchTokenBalance(address, fromToken.address, fromToken.decimals),
+            fetchTokenBalance(address, toToken.address, toToken.decimals),
+          ])
+          
+          if (!cancelled) {
+            console.log(`Setting balances - From: ${from}, To: ${to}`)
+            setFromBalance(from)
+            setToBalance(to)
+            setIsLoadingBalance(false)
+          }
+        } catch (error) {
+          console.error("Error updating balances:", error)
+          if (!cancelled) {
+            setFromBalance("0.00")
+            setToBalance("0.00")
+            setIsLoadingBalance(false)
+          }
+        }
+      } else {
+        console.log("Wallet not connected, clearing balances")
+        setFromBalance("")
+        setToBalance("")
+        setIsLoadingBalance(false)
+      }
+    }
+    
+    updateBalances()
+    return () => { cancelled = true }
+  }, [connected, address, fromToken, toToken])
+
   const swapTokens = () => {
     const temp = fromToken
     setFromToken(toToken)
@@ -281,8 +496,9 @@ export default function SwapPage() {
             <div className="flex items-center space-x-6">
               <Link href="/" className="flex items-center text-gray-300 hover:text-yellow-400 transition-colors">
                 <ArrowLeft className="w-5 h-5 mr-2" />
+                <img src="/dexonic-logo-yellow-500.svg" alt="Dexonic" className="w-8 h-8 mr-2" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  AptosSwap
+                  Dexonic Swap
                 </span>
               </Link>
 
@@ -295,43 +511,27 @@ export default function SwapPage() {
               </div>
             </div>
 
-            {/* Right Side - User & Wallet */}
-            <div className="flex items-center space-x-4">
+            {/* Right Side - Network & Wallet */}
+            <div className="flex items-center gap-4 h-12">
               {/* Network Selector */}
-              <div className="network-selector flex items-center space-x-2 rounded-lg px-3 py-2">
-                <div className="w-6 h-6 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
-                  <span className="text-black text-xs font-bold">A</span>
+              <div className="network-selector flex items-center space-x-2 rounded-lg px-4 py-2 h-12 min-h-[48px] bg-[#181c23] border border-gray-600">
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-yellow-400">
+                  <img src="/aptos-logo.svg" alt="Aptos" className="w-5 h-5 object-contain" />
                 </div>
-                <span className="text-white text-sm">{network?.name || "Aptos"}</span>
-                <ChevronDown className="w-4 h-4" />
+                <span className="text-white text-sm">Aptos Mainnet</span>
+                <ChevronDown className="w-4 h-4 text-white" />
               </div>
 
-              {/* User Info */}
-              {user ? (
-                <div className="flex items-center space-x-3">
-                  <div className="user-info flex items-center space-x-2 rounded-lg px-3 py-2">
-                    <img src={user.image || "/placeholder.svg"} alt={user.name} className="w-6 h-6 rounded-full" />
-                    <span className="font-medium text-sm">{user.name}</span>
-                  </div>
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="swap-button-secondary"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : null}
-
-              {/* Petra Wallet Connection */}
-              <WalletSelector />
+              {/* Wallet Selector (đã bao gồm nút Refresh nếu là Pontem) */}
+              <div className="flex items-center h-12">
+                <MultiWalletSelector />
+              </div>
             </div>
           </div>
         </nav>
 
         {/* Mobile Menu Bar */}
-        <MobileMenuBar activeTab={activeSwapTab} onTabChange={setActiveSwapTab} />
+        <MobileMenuBar />
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-6">
@@ -357,11 +557,15 @@ export default function SwapPage() {
                     <div className="wallet-status mb-4 p-3 rounded-lg">
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <span className="text-sm font-medium">Petra Wallet Connected</span>
+                        <span className="text-sm font-medium text-white">
+                          {activeWallet === 'pontem' ? 'Pontem Wallet Connected' : 'Petra Wallet Connected'}
+                        </span>
                       </div>
-                      <code className="text-xs text-gray-400 font-mono">
-                        {address.slice(0, 10)}...{address.slice(-6)}
-                      </code>
+                      <div className="w-full flex justify-center">
+                        <code className="text-xs text-gray-400 font-mono text-center">
+                          {address.slice(0, 10)}...{address.slice(-6)}
+                        </code>
+                      </div>
                     </div>
                   )}
 
@@ -452,28 +656,22 @@ export default function SwapPage() {
                   </div>
 
                   {/* Swap Mode Selector */}
-                  <div className="mb-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-sm text-gray-300">Swap Mode:</span>
-                    </div>
-                    <div className="swap-mode-selector">
+                  <div className="flex flex-col w-full max-w-md mb-4">
+                    <span className="text-sm text-gray-300 mb-2 text-left">Swap Mode:</span>
+                    <div className="swap-mode-selector flex justify-center items-center gap-0 bg-[#23272f] rounded-xl p-1 w-full">
                       <button
                         onClick={() => setSwapMode("same-address")}
-                        className={`swap-mode-button ${
-                          swapMode === "same-address" ? "active" : ""
-                        }`}
+                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${swapMode === "same-address" ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg" : "text-gray-300"}`}
                       >
-                        <User className="w-4 h-4" />
-                        <span>Same Address</span>
+                        <User className="w-5 h-5 mr-2" />
+                        Same Address
                       </button>
                       <button
                         onClick={() => setSwapMode("cross-address")}
-                        className={`swap-mode-button ${
-                          swapMode === "cross-address" ? "active" : ""
-                        }`}
+                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${swapMode === "cross-address" ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg" : "text-gray-300"}`}
                       >
-                        <Users className="w-4 h-4" />
-                        <span>Cross Address</span>
+                        <Users className="w-5 h-5 mr-2" />
+                        Cross Address
                       </button>
                     </div>
                   </div>
@@ -484,17 +682,17 @@ export default function SwapPage() {
                       <label className="text-sm font-medium text-gray-300 mb-2 block">Receiver Address</label>
                       <Input
                         type="text"
-                        value={receiverAddress}
+                        value={receiverAddress === RECEIVER_ADDRESS ? "" : receiverAddress}
                         onChange={(e) => setReceiverAddress(e.target.value)}
-                        placeholder="Enter receiver address"
+                        placeholder={!connected ? "Enter Receiver Address First" : "Add Receiver Address"}
                         className="swap-input"
                       />
                       <div className="cross-address-info flex items-center justify-between mt-2 p-2 rounded-lg">
                         <span className="text-xs text-gray-400">
-                          Sender: {SENDER_ADDRESS.slice(0, 10)}...{SENDER_ADDRESS.slice(-6)}
+                          Sender: {!connected ? "Add You Wallet First" : address ? `${address.slice(0, 10)}...${address.slice(-6)}` : "Add You Wallet First"}
                         </span>
                         <span className="text-xs text-gray-400">
-                          Receiver: {receiverAddress.slice(0, 10)}...{receiverAddress.slice(-6)}
+                          Receiver: {receiverAddress === RECEIVER_ADDRESS ? "Add Receiver Address First" : receiverAddress ? `${receiverAddress.slice(0, 10)}...${receiverAddress.slice(-6)}` : "Add Receiver Address First"}
                         </span>
                       </div>
                     </div>
@@ -503,7 +701,37 @@ export default function SwapPage() {
                   {/* Wallet Connection Status */}
                   {!connected && (
                     <div className="wallet-status disconnected mb-4 p-3 rounded-lg">
-                      <p className="text-sm text-center">Connect your Petra wallet to start trading</p>
+                      <div className="text-center">
+                        {availableWallets.length === 0 ? (
+                                                      <div className="space-y-2">
+                              <p className="text-sm text-red-400">No wallets detected</p>
+                              <p className="text-xs text-gray-400">Please install a wallet extension</p>
+                              <div className="flex space-x-2 justify-center">
+                                <Button
+                                  onClick={() => window.open('https://petra.app/', '_blank')}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  Install Petra
+                                </Button>
+                                <Button
+                                  onClick={() => window.open('https://pontem.network/', '_blank')}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  Install Pontem
+                                </Button>
+                              </div>
+                            </div>
+                        ) : connectionStatus === 'error' ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-red-400">Connection failed</p>
+                            <p className="text-xs text-gray-400">Please check your Petra extension</p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white">Connect your Aptos wallet to start trading</p>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -512,9 +740,30 @@ export default function SwapPage() {
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium text-gray-300">You pay</label>
-                        <span className="text-xs text-gray-400">Balance: {connected ? "Loading..." : "0.00"}</span>
+                        <div className="flex items-center gap-2">
+                          {connected && Number(fromBalance) > 0 && (
+                            <button
+                              type="button"
+                              className="px-2 py-0.5 rounded bg-white text-yellow-500 text-xs font-semibold mr-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors duration-150 hover:bg-yellow-400 hover:text-white active:bg-yellow-400 active:text-white"
+                              style={{ marginRight: 8 }}
+                              onClick={() => setFromAmount(fromBalance)}
+                            >
+                              Max
+                            </button>
+                          )}
+                          <span className="text-xs text-gray-400">
+                            Balance: {
+                              connected 
+                                ? (isLoadingBalance 
+                                    ? "Loading..." 
+                                    : fromBalance || "0.00"
+                                  )
+                                : "0.00"
+                            }
+                          </span>
+                        </div>
                       </div>
-                      <div className="token-selector rounded-xl p-4">
+                      <div className="token-selector rounded-xl p-4" ref={fromDropdownRef}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <Input
@@ -531,20 +780,18 @@ export default function SwapPage() {
                             onClick={() => setShowFromDropdown(!showFromDropdown)}
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
-                            <img
-                              src={fromToken.logoUrl || "/placeholder.svg"}
-                              alt={fromToken.symbol}
-                              className="w-6 h-6 rounded-full"
-                            />
-                            <span className="font-semibold">{fromToken.symbol}</span>
-                            <ChevronDown className="w-4 h-4" />
+                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+                              <img src={fromToken.logoUrl || "/default-token.svg"} alt={fromToken.symbol} className="w-5 h-5 object-contain" />
+                            </div>
+                            <span className="ml-2 font-semibold text-white">{fromToken.symbol}</span>
+                            <ChevronDown className="w-4 h-4 ml-1 text-white" />
                           </button>
                         </div>
                       </div>
 
                       {/* Token Dropdown */}
                       {showFromDropdown && (
-                        <div className="token-dropdown absolute top-full left-0 right-0 mt-2 rounded-xl z-50 max-h-48 overflow-y-auto">
+                        <div ref={fromDropdownRef} className="token-dropdown absolute top-full left-0 right-0 mt-2 rounded-xl z-50 max-h-48 overflow-y-auto">
                           {tokens
                             .filter((token) => token.symbol !== toToken.symbol)
                             .map((token) => (
@@ -554,22 +801,24 @@ export default function SwapPage() {
                                   setFromToken(token)
                                   setShowFromDropdown(false)
                                 }}
-                                className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl"
+                                className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl hover:bg-gray-700 transition-colors"
                               >
                                 <div className="flex items-center space-x-3">
-                                  <img
-                                    src={token.logoUrl || "/placeholder.svg"}
-                                    alt={token.symbol}
-                                    className="w-8 h-8 rounded-full"
-                                  />
+                                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+                                    <img src={token.logoUrl || "/default-token.svg"} alt={token.symbol} className="w-5 h-5 object-contain" />
+                                  </div>
                                   <div className="text-left">
                                     <div className="text-white font-semibold">{token.symbol}</div>
                                     <div className="text-xs text-gray-400">{token.name}</div>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-white text-sm">0.00</div>
-                                  <div className="text-xs text-gray-400">$0.00</div>
+                                  <div className="text-white text-sm font-medium">
+                                    {connected ? (balances[token.symbol] ?? "0.00") : "0.00"}
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    Balance
+                                  </div>
                                 </div>
                               </button>
                             ))}
@@ -591,9 +840,18 @@ export default function SwapPage() {
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium text-gray-300">You receive</label>
-                        <span className="text-xs text-gray-400">Balance: {connected ? "Loading..." : "0.00"}</span>
+                        <span className="text-xs text-gray-400">
+                          Balance: {
+                            connected 
+                              ? (isLoadingBalance 
+                                  ? "Loading..." 
+                                  : toBalance || "0.00"
+                                )
+                              : "0.00"
+                          }
+                        </span>
                       </div>
-                      <div className="token-selector rounded-xl p-4">
+                      <div className="token-selector rounded-xl p-4" ref={toDropdownRef}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="text-2xl font-bold text-white">
@@ -606,19 +864,21 @@ export default function SwapPage() {
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
                             <img
-                              src={toToken.logoUrl || "/placeholder.svg"}
+                              src={toToken.logoUrl || "/default-token.svg"}
                               alt={toToken.symbol}
+                              onError={(e) => { e.currentTarget.src = "/default-token.svg" }}
                               className="w-6 h-6 rounded-full"
                             />
                             <span className="font-semibold">{toToken.symbol}</span>
-                            <ChevronDown className="w-4 h-4" />
+                            {/* Đổi ChevronDown thành ChevronUp */}
+                            <ChevronUp className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
 
                       {/* Token Dropdown */}
                       {showToDropdown && (
-                        <div className="token-dropdown absolute top-full left-0 right-0 mt-2 rounded-xl z-50 max-h-48 overflow-y-auto">
+                        <div ref={toDropdownRef} className="token-dropdown absolute bottom-full left-0 right-0 mb-2 rounded-xl z-50 max-h-48 overflow-y-auto">
                           {tokens
                             .filter((token) => token.symbol !== fromToken.symbol)
                             .map((token) => (
@@ -628,22 +888,24 @@ export default function SwapPage() {
                                   setToToken(token)
                                   setShowToDropdown(false)
                                 }}
-                                className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl"
+                                className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl hover:bg-gray-700 transition-colors"
                               >
                                 <div className="flex items-center space-x-3">
-                                  <img
-                                    src={token.logoUrl || "/placeholder.svg"}
-                                    alt={token.symbol}
-                                    className="w-8 h-8 rounded-full"
-                                  />
+                                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+                                    <img src={token.logoUrl || "/default-token.svg"} alt={token.symbol} className="w-5 h-5 object-contain" />
+                                  </div>
                                   <div className="text-left">
                                     <div className="text-white font-semibold">{token.symbol}</div>
                                     <div className="text-xs text-gray-400">{token.name}</div>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-white text-sm">0.00</div>
-                                  <div className="text-xs text-gray-400">$0.00</div>
+                                  <div className="text-white text-sm font-medium">
+                                    {connected ? (balances[token.symbol] ?? "0.00") : "0.00"}
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    Balance
+                                  </div>
                                 </div>
                               </button>
                             ))}
@@ -694,7 +956,13 @@ export default function SwapPage() {
                     {/* Swap Button */}
                     <Button
                       onClick={executeSwap}
-                      disabled={!connected || !fromAmount || Number.parseFloat(fromAmount) <= 0 || isSwapping}
+                      disabled={
+                        !connected || 
+                        !fromAmount || 
+                        Number.parseFloat(fromAmount) <= 0 || 
+                        isSwapping ||
+                        (swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === ""))
+                      }
                       className="swap-execute-button w-full font-bold py-4 rounded-xl text-lg"
                     >
                       {isSwapping ? (
@@ -703,9 +971,11 @@ export default function SwapPage() {
                           {swapMode === "cross-address" ? "Cross-Address Swapping..." : "Swapping..."}
                         </div>
                       ) : !connected ? (
-                        "Connect Petra Wallet"
+                        "Connect Aptos Wallet"
                       ) : !fromAmount || Number.parseFloat(fromAmount) <= 0 ? (
                         "Enter Amount"
+                      ) : swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === "") ? (
+                        "Add Receiver Address"
                       ) : swapMode === "cross-address" ? (
                         `Swap ${fromToken.symbol} → ${toToken.symbol} (Cross-Address)`
                       ) : (
@@ -721,8 +991,8 @@ export default function SwapPage() {
                           <span className="text-sm font-medium">Cross-Address Swap</span>
                         </div>
                         <div className="text-xs text-gray-300 space-y-1">
-                          <div>From: {SENDER_ADDRESS.slice(0, 10)}...{SENDER_ADDRESS.slice(-6)}</div>
-                          <div>To: {receiverAddress.slice(0, 10)}...{receiverAddress.slice(-6)}</div>
+                          <div>From: {address ? `${address.slice(0, 10)}...${address.slice(-6)}` : "Add You Wallet First"}</div>
+                          <div>To: {receiverAddress === RECEIVER_ADDRESS ? "Add Receiver Address First" : receiverAddress ? `${receiverAddress.slice(0, 10)}...${receiverAddress.slice(-6)}` : "Add Receiver Address First"}</div>
                           <div>Using: Aptos DEX Aggregator</div>
                         </div>
                       </div>
@@ -783,6 +1053,9 @@ export default function SwapPage() {
 
       {/* Chat Button - Only visible when user is logged in */}
       <ChatButton user={user} />
+      
+      {/* Debug Component - Only in development */}
+      {process.env.NODE_ENV === 'development' && <WalletDebug />}
     </div>
   )
 }

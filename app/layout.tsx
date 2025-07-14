@@ -2,8 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "@/app/globals.css"
-import { PetraProvider } from "@/components/wallet/petra-context"
-import { WalletProvider } from "@/components/wallet/wallet-provider"
+import { MultiWalletProvider } from "@/components/wallet/multi-wallet-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,9 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <PetraProvider>
-          <WalletProvider>{children}</WalletProvider>
-        </PetraProvider>
+        <MultiWalletProvider>
+          {children}
+        </MultiWalletProvider>
       </body>
     </html>
   )

@@ -1,0 +1,11 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/auth/google/route": "/api/auth/google",
+  "/api/simulate-swap/route": "/api/simulate-swap",
+  "/page": "/",
+  "/auth/callback/page": "/auth/callback",
+  "/auth/success/page": "/auth/success",
+  "/chat/page": "/chat",
+  "/swap/page": "/swap",
+  "/profile/page": "/profile"
+}

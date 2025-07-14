@@ -174,8 +174,8 @@
 
 .swap-nav-link.active {
   color: var(--swap-primary);
-  border-color: var(--swap-primary);
-  background: rgba(251, 191, 36, 0.1);
+  border-color: transparent;
+  background: transparent;
 }
 
 /* Enhanced Swap Mode Selector */

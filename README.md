@@ -1,340 +1,226 @@
-# Aptos DEX Aggregator
+# AptosSwap - The Future of DeFi Trading
 
-A decentralized exchange (DEX) aggregator built on Aptos that finds the best swap routes across multiple DEXs with multi-hop routing support.
+A decentralized exchange aggregator on the Aptos blockchain that provides lightning-fast swaps with the best rates across multiple DEXs.
 
-## Features
+## 🚀 Quick Start
 
-- **Multi-DEX Aggregation**: Supports multiple DEXs including Liquidswap and Econia
-- **Multi-Hop Routing**: Finds optimal routes through intermediate tokens
-- **Slippage Protection**: Configurable slippage tolerance
-- **Quote Caching**: Caches quotes for better performance
-- **Admin Controls**: Pausable contracts with admin functions
-- **Event System**: Comprehensive event logging for tracking
+### Prerequisites
+- Node.js 18+ 
+- pnpm (recommended) or npm
+- Petra Wallet extension for browser
 
-## Architecture
+### Installation & Setup
 
-The aggregator consists of two main modules:
-
-1. **`multiswap_aggregator`**: Main aggregator logic with routing and swap execution
-2. **`aptosdoge`**: Example token for testing (AptosDoge)
-
-### Key Components
-
-- **AggregatorConfig**: Configuration settings for fees, slippage, and supported DEXs
-- **DEXRegistry**: Registry of pools and markets from different DEXs
-- **QuoteCache**: Cached quotes for performance optimization
-- **SwapEvents**: Event system for tracking swaps and quotes
-
-## Prerequisites
-
-1. **Aptos CLI**: Install the Aptos CLI
-   ```bash
-   curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
-   ```
-
-2. **Initialize Aptos Account**: Set up your Aptos account
-   ```bash
-   aptos init
-   ```
-
-## Quick Start
-
-### 1. Clone and Navigate
+1. **Clone and install dependencies:**
 ```bash
-cd aptos-multiswap-aggregator
+git clone <repository-url>
+cd AptosSwap
+pnpm install
 ```
 
-### 2. Deploy Contracts (Windows)
+2. **Start the development server:**
 ```bash
-deploy.bat
+pnpm dev
 ```
 
-### 3. Deploy Contracts (Linux/Mac)
+3. **Open your browser:**
+Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 🏗️ Project Structure
+
+```
+AptosSwap/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── swap/              # Swap interface
+│   ├── chat/              # Chat feature
+│   └── profile/           # User profile
+├── components/            # React components
+│   ├── swap/             # Swap-related components
+│   ├── auth/             # Authentication components
+│   └── ui/               # UI components
+├── aptos-multiswap-aggregator-v3/  # Smart contracts
+└── lib/                  # Utility functions
+```
+
+## 🔧 Smart Contract Deployment
+
+The smart contracts have been deployed to Aptos mainnet:
+
+- **Aggregator Contract**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::multiswap_aggregator_v2`
+- **AptosDoge Token**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge`
+
+See `deploy.md` for detailed deployment information.
+
+## 🎯 Features
+
+### Core Features
+- **Multi-DEX Aggregation**: Get the best rates across multiple DEXs
+- **Cross-Address Swaps**: Swap tokens to different addresses
+- **Real-time Quotes**: Instant price quotes and route optimization
+- **MEV Protection**: Built-in protection against MEV attacks
+- **Mobile Responsive**: Optimized for all device sizes
+
+### Supported Tokens
+- **APT** (Aptos Coin)
+- **APDOGE** (AptosDoge)
+- **USDC** (USD Coin)
+- **USDT** (Tether USD)
+- **WETH** (Wrapped ETH)
+
+### DEX Integration
+- **Liquidswap**: `0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12`
+- **Econia**: `0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5`
+
+## 🧪 Testing Features
+
+### 1. Wallet Connection
+- Install Petra Wallet extension
+- Click "Connect Petra Wallet" button
+- Approve the connection
+
+### 2. Token Swapping
+1. **Select Input Token**: Choose APT or any supported token
+2. **Enter Amount**: Input the amount you want to swap
+3. **Select Output Token**: Choose your desired output token
+4. **Review Quote**: Check the swap details and price impact
+5. **Execute Swap**: Confirm the transaction
+
+### 3. Cross-Address Swaps
+- Toggle to "Cross Address" mode
+- Enter receiver address
+- Swap tokens to another wallet
+
+### 4. Settings
+- **Slippage Tolerance**: Adjust from 0.1% to custom values
+- **Transaction Deadline**: Set custom deadline (default: 20 minutes)
+- **MEV Protection**: Toggle on/off for MEV protection
+
+## 🔌 API Endpoints
+
+### Simulate Swap
 ```bash
-chmod +x deploy.sh
-./deploy.sh
+POST /api/simulate-swap
+Content-Type: application/json
+
+{
+  "inputToken": "0x1::aptos_coin::AptosCoin",
+  "outputToken": "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge",
+  "inputAmount": "10000000"
+}
 ```
 
-### 4. Manual Deployment
-If you prefer manual deployment:
+Response:
+```json
+{
+  "outputAmount": "9066108",
+  "dexId": 1,
+  "priceImpact": "1000",
+  "fee": "30",
+  "hops": 1,
+  "route": ["0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"]
+}
+```
 
+## 🛠️ Development
+
+### Environment Variables
+Create a `.env.local` file:
+```env
+NEXT_PUBLIC_APTOS_NODE_URL=https://fullnode.mainnet.aptoslabs.com
+NEXT_PUBLIC_AGGREGATOR_ADDRESS=0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8
+```
+
+### Available Scripts
 ```bash
-# Compile contracts
-aptos move compile
+# Development
+pnpm dev              # Start development server
+pnpm build            # Build for production
+pnpm start            # Start production server
+pnpm lint             # Run ESLint
+pnpm type-check       # Run TypeScript checks
 
-# Deploy contracts
-aptos move publish
-
-# Initialize aggregator
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::initialize
-
-# Initialize AptosDoge token
-aptos move run --function-id <YOUR_ADDRESS>::aptosdoge::initialize
-
-# Setup default pools
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::setup_default_pools
-
-# Mint AptosDoge for testing
-aptos move run --function-id <YOUR_ADDRESS>::aptosdoge::mint --args <YOUR_ADDRESS> 1000000000
+# Smart Contract
+cd aptos-multiswap-aggregator-v3
+aptos move compile    # Compile contracts
+aptos move test       # Run tests
+aptos move publish    # Deploy contracts
 ```
 
-## Usage
-
-### Simulate a Swap
+### Smart Contract Development
 ```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::simulate_swap \
-  --type-args 0x1::aptos_coin::AptosCoin <YOUR_ADDRESS>::aptosdoge::AptosDoge \
-  --args 10000000
+cd aptos-multiswap-aggregator-v3
+
+# Compile with specific address
+aptos move compile --package-dir . --named-addresses aggregator=0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8
+
+# Deploy to mainnet
+aptos move publish --profile mainnet --package-dir . --named-addresses aggregator=0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8
 ```
 
-### Execute a Swap
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::swap_exact_input \
-  --type-args 0x1::aptos_coin::AptosCoin <YOUR_ADDRESS>::aptosdoge::AptosDoge \
-  --args "u64:0" "u64:10000000" "u64:18446744073709551615"
-```
+## 📱 Mobile Features
 
-### Get Quote Details
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::get_quote_details \
-  --type-args 0x1::aptos_coin::AptosCoin <YOUR_ADDRESS>::aptosdoge::AptosDoge \
-  --args 10000000
-```
+- **Responsive Design**: Optimized for mobile devices
+- **Touch-Friendly**: Large buttons and intuitive gestures
+- **Mobile Menu**: Collapsible navigation for small screens
+- **Quick Actions**: Easy access to common functions
 
-## Configuration
+## 🔒 Security Features
 
-### Default Settings
-- **Platform Fee**: 0.3% (30 basis points)
-- **Max Slippage**: 5% (500 basis points)
-- **Quote Cache Duration**: 5 minutes
-- **Max Route Hops**: 3
-- **Min Liquidity Threshold**: 1,000
+- **MEV Protection**: Built-in protection against front-running
+- **Slippage Control**: Customizable slippage tolerance
+- **Transaction Deadlines**: Prevent stuck transactions
+- **Wallet Integration**: Secure wallet connection
 
-### Update Configuration
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::update_config \
-  --args <FEE_RECIPIENT> <PLATFORM_FEE> <MAX_SLIPPAGE> <CACHE_DURATION> <MAX_HOPS> <MIN_LIQUIDITY>
-```
+## 🎨 UI/UX Features
 
-## Admin Functions
+- **Dark Theme**: Modern dark interface
+- **Animations**: Smooth transitions and loading states
+- **Real-time Updates**: Live price and balance updates
+- **Error Handling**: Clear error messages and recovery options
 
-### Pause/Unpause
-```bash
-# Pause
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::pause
+## 📊 Analytics & Monitoring
 
-# Unpause
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::unpause
-```
+- **Transaction History**: Track all your swaps
+- **Price Charts**: Visual price data
+- **Gas Estimation**: Real-time gas cost estimates
+- **Performance Metrics**: Platform statistics
 
-### Add Supported Token
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::add_supported_token \
-  --args <TOKEN_ADDRESS>
-```
-
-### Add Liquidswap Pool
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::add_liquidswap_pool \
-  --args <POOL_KEY> <LIQUIDITY> <FEE>
-```
-
-### Add Econia Market
-```bash
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::add_econia_market \
-  --args <MARKET_KEY> <LIQUIDITY> <FEE> <MARKET_ID>
-```
-
-## Testing
-
-### Run Tests
-```bash
-aptos move test
-```
-
-### Test Specific Functions
-```bash
-# Test swap simulation
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::simulate_swap \
-  --type-args 0x1::aptos_coin::AptosCoin <YOUR_ADDRESS>::aptosdoge::AptosDoge \
-  --args 10000000
-
-# Test actual swap
-aptos move run --function-id <YOUR_ADDRESS>::multiswap_aggregator::swap_exact_input \
-  --type-args 0x1::aptos_coin::AptosCoin <YOUR_ADDRESS>::aptosdoge::AptosDoge \
-  --args "u64:0" "u64:10000000" "u64:18446744073709551615"
-```
-
-## Error Codes
-
-| Code | Error | Description |
-|------|-------|-------------|
-| 1 | E_NOT_ADMIN | Only admin can perform this action |
-| 2 | E_INSUFFICIENT_AMOUNT | Input amount is insufficient |
-| 3 | E_SLIPPAGE_EXCEEDED | Slippage tolerance exceeded |
-| 4 | E_INVALID_DEX | Invalid DEX identifier |
-| 5 | E_SWAP_FAILED | Swap execution failed |
-| 6 | E_POOL_NOT_FOUND | No pool found for token pair |
-| 7 | E_DEADLINE_EXCEEDED | Transaction deadline exceeded |
-| 8 | E_INVALID_ROUTE | Invalid swap route |
-| 9 | E_QUOTE_EXPIRED | Quote has expired |
-| 10 | E_INSUFFICIENT_LIQUIDITY | Insufficient liquidity in pool |
-| 11 | E_MAX_HOPS_EXCEEDED | Route exceeds maximum hops |
-
-## Development
-
-### Project Structure
-```
-aptos-multiswap-aggregator/
-├── sources/
-│   ├── aggregator.move      # Main aggregator logic
-│   └── aptosdoge.move       # Example token
-├── tests/
-│   └── aggregator_test.move # Test cases
-├── scripts/
-│   └── deploy_and_setup.ts  # Deployment script
-├── Move.toml                # Move package configuration
-├── aptos.config.toml        # Aptos configuration
-├── deploy.bat              # Windows deployment script
-├── deploy.sh               # Linux/Mac deployment script
-└── README.md               # This file
-```
-
-### Adding New DEXs
-
-1. Add DEX identifier constant
-2. Implement quote function (`get_<dex>_quote`)
-3. Implement swap execution function (`execute_<dex>_swap`)
-4. Add to supported DEXs list in configuration
-
-### Adding New Tokens
-
-1. Create token module following `aptosdoge.move` pattern
-2. Add token to supported tokens list
-3. Create pools/markets for the token
-
-## Security Considerations
-
-- **Admin Controls**: Only deployer can call admin functions
-- **Pausable**: Contracts can be paused in emergency
-- **Slippage Protection**: Configurable slippage tolerance
-- **Deadline Protection**: Transactions expire after deadline
-- **Input Validation**: All inputs are validated
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests if applicable
 5. Submit a pull request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🆘 Support
 
-For questions and support:
-- Create an issue on GitHub
-- Check the Aptos documentation: https://aptos.dev/
-- Join the Aptos Discord: https://discord.gg/aptos
+- **Documentation**: Check the docs folder
+- **Issues**: Report bugs on GitHub
+- **Discord**: Join our community
+- **Email**: Contact support team
 
-## 🔮 Roadmap
+## 🚀 Deployment
 
-- [ ] Integration with additional DEXs
-- [ ] Cross-chain bridging support
-- [ ] Advanced order types (limit orders, stop-loss)
-- [ ] MEV protection
-- [ ] Mobile SDK
-- [ ] Analytics dashboard
-- [ ] Governance token integration
+### Frontend Deployment (Vercel)
+```bash
+# Build the project
+pnpm build
 
-## 📁 Project Structure
+# Deploy to Vercel
+vercel --prod
+```
 
-\`\`\`
-aptos-multiswap-aggregator/
-├── Move.toml                    # Move package configuration
-├── README.md                    # This file
-├── sources/
-│   └── aggregator.move         # Main aggregator smart contract
-├── scripts/
-│   └── simulate_best_path.ts   # TypeScript simulation and testing
-├── tests/
-│   └── aggregator_test.move    # Move unit tests
-├── examples/
-│   └── user_swap_example.move  # Example usage scripts
-├── .aptos/
-│   └── config.yaml            # Aptos CLI configuration
-└── aptos.config.toml          # Project configuration
-\`\`\`
+### Smart Contract Deployment
+See `DEPLOYMENT.md` for detailed deployment instructions.
 
-## 🛠️ Installation & Setup
+---
 
-### Prerequisites
+**Happy Swapping! 🚀**
 
-1. **Aptos CLI**: Install from [Aptos Labs](https://aptos.dev/cli-tools/aptos-cli-tool/install-aptos-cli)
-2. **Node.js**: Version 16+ for TypeScript scripts
-3. **Move**: Comes with Aptos CLI
-
-### Setup Steps
-
-1. **Clone and Navigate**:
-   \`\`\`bash
-   cd aptos-multiswap-aggregator
-   \`\`\`
-
-2. **Initialize Aptos Account**:
-   \`\`\`bash
-   aptos init
-   \`\`\`
-
-3. **Install Dependencies**:
-   \`\`\`bash
-   npm install aptos
-   \`\`\`
-
-4. **Compile Move Code**:
-   \`\`\`bash
-   aptos move compile
-   \`\`\`
-
-5. **Run Tests**:
-   \`\`\`bash
-   aptos move test
-   \`\`\`
-
-## 🔧 Smart Contract Functions
-
-### Core Functions
-
-- `initialize(admin: &signer)`: Initialize the aggregator
-- `get_best_quote<InputCoin, OutputCoin>(input_amount: u64)`: Get best quote across DEXs
-- `swap_exact_input<InputCoin, OutputCoin>(...)`: Execute swap with best rate
-- `simulate_swap<InputCoin, OutputCoin>(input_amount: u64)`: Simulate swap without execution
-
-### Admin Functions
-
-- `update_config(...)`: Update platform configuration
-- `pause(admin: &signer)`: Pause the contract
-- `unpause(admin: &signer)`: Unpause the contract
-
-### View Functions
-
-- `get_config()`: Get current configuration
-- `simulate_swap(...)`: Preview swap results
-
-## 💱 Usage Examples
-
-### Basic Swap
-
-```move
-use aggregator::multiswap_aggregator;
-
-// Swap 1 APT for USDC with 1% slippage tolerance
-multiswap_aggregator::swap_exact_input<AptosCoin, USDC>(
-    &user,
-    100000000, // 1 APT
-    99000000,  // Min 99 USDC (1% slippage)
-    deadline
-);
+*Built with ❤️ on Aptos Blockchain*
