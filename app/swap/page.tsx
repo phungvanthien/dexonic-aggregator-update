@@ -145,6 +145,61 @@ function useWalletBalances(tokens: Token[], address: string | null, connected: b
   return balances;
 }
 
+function useMarketOverview() {
+  const [marketData, setMarketData] = useState([
+    { pair: "APT/USDC", price: "-", change: "-", positive: true },
+    { pair: "USDT/USDC", price: "-", change: "-", positive: true },
+    { pair: "WETH/APT", price: "-", change: "-", positive: true },
+  ])
+  useEffect(() => {
+    async function fetchMarket() {
+      try {
+        const res = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=aptos,usd-coin,tether,ethereum&vs_currencies=usd&include_24hr_change=true"
+        )
+        const data = await res.json()
+        // APT/USDC
+        const aptPrice = data.aptos.usd
+        const aptChange = data.aptos.usd_24h_change
+        // USDT/USDC
+        const usdtPrice = data.tether.usd
+        const usdtChange = data.tether.usd_24h_change
+        // WETH/APT
+        const ethPrice = data.ethereum.usd
+        const ethChange = data.ethereum.usd_24h_change
+        const wethApt = ethPrice / aptPrice
+        const wethAptChange = ethChange - aptChange // xấp xỉ
+        setMarketData([
+          {
+            pair: "APT/USDC",
+            price: `$${aptPrice.toFixed(3)}`,
+            change: `${aptChange >= 0 ? "+" : ""}${aptChange.toFixed(2)}%`,
+            positive: aptChange >= 0,
+          },
+          {
+            pair: "USDT/USDC",
+            price: `$${usdtPrice.toFixed(3)}`,
+            change: `${usdtChange >= 0 ? "+" : ""}${usdtChange.toFixed(2)}%`,
+            positive: usdtChange >= 0,
+          },
+          {
+            pair: "WETH/APT",
+            price: `${wethApt.toFixed(3)}`,
+            change: `${wethAptChange >= 0 ? "+" : ""}${wethAptChange.toFixed(2)}%`,
+            positive: wethAptChange >= 0,
+          },
+        ])
+      } catch (e) {
+        // fallback giữ nguyên data cũ
+      }
+    }
+    fetchMarket()
+    const interval = setInterval(fetchMarket, 60_000) // refresh mỗi phút
+    return () => clearInterval(interval)
+  }, [])
+  return marketData
+}
+
 export default function SwapPage() {
   const { address, connected, network, signAndSubmitTransaction, availableWallets, connectionStatus, activeWallet } = useMultiWallet()
   const [fromToken, setFromToken] = useState<Token>(tokens[0])
@@ -495,6 +550,8 @@ export default function SwapPage() {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [fromAmount, fromToken, toToken, isLoadingQuotes])
+
+  const marketData = useMarketOverview()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -1018,28 +1075,30 @@ export default function SwapPage() {
 
             {/* Right Sidebar - Market Info */}
             <div className="hidden xl:block w-80">
-              <Card className="swap-card mb-4">
-                <CardContent className="p-4">
-                  <h3 className="text-white font-semibold mb-3">Market Overview</h3>
-                  <div className="space-y-3">
-                    {[
-                      { pair: "APT/USDC", price: "$8.45", change: "+2.34%", positive: true },
-                      { pair: "USDT/USDC", price: "$1.00", change: "+0.01%", positive: true },
-                      { pair: "WETH/APT", price: "285.6", change: "-1.23%", positive: false },
-                    ].map((market, i) => (
-                      <div key={i} className="market-item flex items-center justify-between p-2 rounded">
-                        <div>
-                          <div className="text-white text-sm font-medium">{market.pair}</div>
-                          <div className="text-gray-400 text-xs">{market.price}</div>
-                        </div>
-                        <div className={`text-sm font-medium ${market.positive ? "text-green-400" : "text-red-400"}`}>
-                          {market.change}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Market Overview */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-2">Market Overview</h3>
+                <div className="rounded-xl bg-gray-900 p-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Pair</th>
+                        <th className="text-right">Price</th>
+                        <th className="text-right">24h Change</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {marketData.map((row) => (
+                        <tr key={row.pair}>
+                          <td>{row.pair}</td>
+                          <td className="text-right">{row.price}</td>
+                          <td className={`text-right font-semibold ${row.positive ? "text-green-500" : "text-red-500"}`}>{row.change}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
               <Card className="swap-card">
                 <CardContent className="p-4">
