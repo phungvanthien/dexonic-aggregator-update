@@ -15,6 +15,7 @@ import { MultiWalletSelector } from "@/components/wallet/multi-wallet-selector"
 import { AdminInitializer } from "@/components/swap/admin-initializer"
 import { WalletDebug } from "@/components/wallet/wallet-debug"
 import { Progress } from "@/components/ui/progress"
+import { Dispatch, SetStateAction } from "react";
 
 interface Token {
   symbol: string
@@ -64,7 +65,7 @@ const tokens: Token[] = [
   {
     symbol: "WBTC",
     name: "Wrapped Bitcoin",
-    address: "0x5e156f6b3c6e0c7e7e0e92ce40938e425c205b5b6c2b5b6b6c2b5b6b6c2b5b6b::coin::T",
+    address: "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::multiswap_aggregator_v2::WBTC",
     decimals: 8,
     logoUrl: "/wbtc-logo.svg",
   },
@@ -78,7 +79,7 @@ const tokens: Token[] = [
 ]
 
 // Aggregator configuration
-const AGGREGATOR_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
+const AGGREGATOR_ADDRESS = "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc"
 const SENDER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
 const RECEIVER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
 
@@ -154,15 +155,41 @@ function useMarketOverview() {
     { pair: "WBTC/APT", price: "-", change: "-", positive: true },
     { pair: "WBTC/USDC", price: "-", change: "-", positive: true },
   ])
+  
   useEffect(() => {
     async function fetchMarket() {
       try {
+        // Fetch real APT/USDC price from Liquidswap pool
+        let aptUsdcPrice = null;
+        try {
+          const poolRes = await fetch('https://fullnode.mainnet.aptoslabs.com/v1/accounts/0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa/resources');
+          if (poolRes.ok) {
+            const poolData = await poolRes.json();
+            const aptUsdcPool = poolData.find((r: any) => 
+              r.type.includes('TokenPairReserve') && 
+              r.type.includes('aptos_coin::AptosCoin') && 
+              r.type.includes('asset::USDC')
+            );
+            
+            if (aptUsdcPool && aptUsdcPool.data.reserve_x && aptUsdcPool.data.reserve_y) {
+              const aptReserve = parseInt(aptUsdcPool.data.reserve_x) / 100000000; // APT has 8 decimals
+              const usdcReserve = parseInt(aptUsdcPool.data.reserve_y) / 1000000; // USDC has 6 decimals
+              aptUsdcPrice = usdcReserve / aptReserve;
+              console.log('Real APT/USDC price from pool:', aptUsdcPrice);
+            }
+          }
+        } catch (error) {
+          console.log('Failed to fetch pool price, using CoinGecko fallback');
+        }
+
+        // Fallback to CoinGecko
         const res = await fetch(
           "https://api.coingecko.com/api/v3/simple/price?ids=aptos,usd-coin,tether,ethereum,wrapped-bitcoin&vs_currencies=usd&include_24hr_change=true"
         )
         const data = await res.json()
-        // APT/USDC
-        const aptPrice = data.aptos.usd
+        
+        // APT/USDC - use real pool price if available, otherwise CoinGecko
+        const aptPrice = aptUsdcPrice || data.aptos.usd
         const aptChange = data.aptos.usd_24h_change
         // USDT/USDC
         const usdtPrice = data.tether.usd
@@ -179,10 +206,11 @@ function useMarketOverview() {
         // WBTC/APT
         const wbtcApt = wbtcPrice / aptPrice
         const wbtcAptChange = wbtcChange - aptChange // xấp xỉ
+        
         setMarketData([
           {
             pair: "APT/USDC",
-            price: `$${aptPrice.toFixed(3)}`,
+            price: aptUsdcPrice ? `$${aptUsdcPrice.toFixed(3)}` : `$${aptPrice.toFixed(3)}`,
             change: `${aptChange >= 0 ? "+" : ""}${aptChange.toFixed(2)}%`,
             positive: aptChange >= 0,
           },
@@ -226,6 +254,27 @@ function useMarketOverview() {
     return () => clearInterval(interval)
   }, [])
   return marketData
+}
+
+// Mapping dex_id sang tên DEX
+function getDexName(quote: any) {
+  const dex = (quote.dex || '').toLowerCase().trim();
+  // Trả đúng tên sàn theo quote.dex
+  if (dex === 'pancakeswap') return 'PancakeSwap';
+  if (dex === 'liquidswap') return 'Liquidswap';
+  if (dex === 'animeswap') return 'AnimeSwap';
+  if (dex === 'panora') return 'Panora';
+  if (dex === 'aries') return 'Aries';
+  if (dex === 'econia') return 'Econia';
+  if (dex === 'sushiswap') return 'SushiSwap';
+  if (dex === 'thala') return 'Thala';
+  if (dex === 'aux') return 'Aux';
+  // Nếu là Aggregator contract
+  if (dex.includes('aggregator')) return 'Aggregator';
+  // Nếu có dex_id nhưng không phải các DEX trên, trả về Aggregator
+  if (quote.dex_id) return 'Aggregator';
+  // Fallback
+  return quote.dex || 'Unknown DEX';
 }
 
 export default function SwapPage() {
@@ -326,6 +375,7 @@ export default function SwapPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
         },
         body: JSON.stringify({
           inputToken: fromToken.address,
@@ -337,7 +387,15 @@ export default function SwapPage() {
       if (response.ok) {
         const data = await response.json()
         if (data && data.quotes && Array.isArray(data.quotes)) {
-          setQuotes(data.quotes)
+          console.log('🔍 DEBUG: Setting quotes from API:', data.quotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount })));
+          
+          // Force sort quotes theo outputAmount để đảm bảo thứ tự đúng
+          const sortedQuotes = data.quotes.sort((a, b) => 
+            Number.parseFloat(b.outputAmount) - Number.parseFloat(a.outputAmount)
+          );
+          
+          console.log('🔍 DEBUG: Sorted quotes:', sortedQuotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount })));
+          setQuotes(sortedQuotes)
         } else {
           setQuotes([])
         }
@@ -555,12 +613,47 @@ export default function SwapPage() {
     }
   }
 
-  const bestQuote =
-    quotes.length > 0
-      ? quotes.reduce((best, current) =>
-          Number.parseFloat(current.outputAmount) > Number.parseFloat(best.outputAmount) ? current : best,
-        )
-      : null
+  // Tính toán bestQuote từ quotes array - đảm bảo chọn DEX có output cao nhất
+  const bestQuote = quotes.length > 0
+    ? quotes.reduce((best, current) => {
+        const currentOutput = Number.parseFloat(current.outputAmount);
+        const bestOutput = Number.parseFloat(best.outputAmount);
+        console.log(`🔍 DEBUG: Comparing ${current.dex}(${currentOutput}) vs ${best.dex}(${bestOutput})`);
+        if (currentOutput > bestOutput) {
+          console.log(`✅ ${current.dex} is better than ${best.dex}`);
+          return current;
+        } else {
+          console.log(`❌ ${current.dex} is not better than ${best.dex}`);
+          return best;
+        }
+      })
+    : null;
+    
+  // Debug log để kiểm tra bestQuote
+  if (bestQuote) {
+    console.log('🔍 DEBUG: Best quote found:', {
+      dex: bestQuote.dex,
+      outputAmount: bestQuote.outputAmount,
+      allQuotes: quotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount }))
+    });
+    
+    // Kiểm tra xem bestQuote có thực sự là cao nhất không
+    const maxOutput = Math.max(...quotes.map(q => Number.parseFloat(q.outputAmount)));
+    const maxDex = quotes.find(q => Number.parseFloat(q.outputAmount) === maxOutput);
+    console.log('🔍 DEBUG: Verification - Max output:', maxOutput, 'Max DEX:', maxDex?.dex);
+    
+    if (Number.parseFloat(bestQuote.outputAmount) !== maxOutput) {
+      console.error('❌ ERROR: Best quote is not the highest!');
+    } else {
+      console.log('✅ SUCCESS: Best quote is correct!');
+    }
+  }
+  
+  // Debug log để kiểm tra tất cả quotes và sắp xếp
+  console.log('🔍 DEBUG: All quotes sorted by outputAmount:', 
+    quotes.map(q => ({ dex: q.dex, outputAmount: parseFloat(q.outputAmount) }))
+      .sort((a, b) => b.outputAmount - a.outputAmount)
+  );
 
   // Sắp xếp quotes theo outputAmount giảm dần (lợi nhất lên trên):
   const sortedQuotes = quotes.slice().sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount));
@@ -601,6 +694,68 @@ export default function SwapPage() {
   }, [fromAmount, fromToken, toToken, isLoadingQuotes])
 
   const marketData = useMarketOverview()
+  
+  // Add real-time price display component
+  const [realPrice, setRealPrice] = useState<string>("-")
+  
+  // Thêm hàm fetchRealPoolPrice để lấy giá từ pool thực tế
+  async function fetchRealPoolPrice(
+    fromToken: Token,
+    toToken: Token,
+    setRealPrice: Dispatch<SetStateAction<string>>
+  ) {
+    // Chỉ lấy giá cho cặp APT/USDC từ PancakeSwap pool, bạn có thể mở rộng cho các cặp khác nếu cần
+    if (
+      fromToken.symbol === "APT" &&
+      toToken.symbol === "USDC"
+    ) {
+      try {
+        const poolRes = await fetch(
+          "https://fullnode.mainnet.aptoslabs.com/v1/accounts/0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa/resources"
+        );
+        if (poolRes.ok) {
+          const poolData = await poolRes.json();
+          const aptUsdcPool = poolData.find(
+            (r: any) =>
+              r.type.includes("TokenPairReserve") &&
+              r.type.includes("aptos_coin::AptosCoin") &&
+              r.type.includes("asset::USDC")
+          );
+          if (
+            aptUsdcPool &&
+            aptUsdcPool.data.reserve_x &&
+            aptUsdcPool.data.reserve_y
+          ) {
+            const aptReserve = parseInt(aptUsdcPool.data.reserve_x) / 1e8; // 8 decimals
+            const usdcReserve = parseInt(aptUsdcPool.data.reserve_y) / 1e6; // 6 decimals
+            const price = usdcReserve / aptReserve;
+            setRealPrice(`$${price.toFixed(3)}`);
+            return;
+          }
+        }
+      } catch (e) {
+        // fallback giữ nguyên giá cũ
+      }
+    }
+    // Nếu không phải cặp hỗ trợ, hoặc lỗi, đặt giá trị mặc định
+    setRealPrice("-");
+  }
+
+  // Thêm useEffect để tự động fetch giá pool mỗi 30s khi chọn cặp token
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+    if (fromToken && toToken) {
+      // Fetch ngay lần đầu
+      fetchRealPoolPrice(fromToken, toToken, setRealPrice);
+      // Sau đó cứ 30s fetch lại
+      intervalId = setInterval(() => {
+        fetchRealPoolPrice(fromToken, toToken, setRealPrice);
+      }, 30000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [fromToken, toToken]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -778,6 +933,22 @@ export default function SwapPage() {
                     </div>
                   </div>
 
+                  {/* Real-time Price Display */}
+                  {fromToken.symbol === "APT" && toToken.symbol === "USDC" && (
+                    <div className="mb-4 p-3 bg-gradient-to-r from-yellow-400/10 to-yellow-600/10 border border-yellow-400/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm text-gray-300">Real-time APT/USDC Price:</span>
+                        </div>
+                        <span className="text-lg font-bold text-yellow-400">{realPrice}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        From PancakeSwap Pool • Updates every 30s
+                      </div>
+                    </div>
+                  )}
+
                   {/* Swap Mode Selector */}
                   <div className="flex flex-col w-full max-w-md mb-4">
                     <span className="text-sm text-gray-300 mb-2 text-left">Swap Mode:</span>
@@ -897,7 +1068,12 @@ export default function SwapPage() {
                               className="bg-transparent border-none text-2xl font-bold text-white placeholder-gray-400 p-0 h-auto focus:ring-0"
                               disabled={!connected}
                             />
-                            <div className="text-sm text-gray-400 mt-1">≈ $0.00</div>
+                            <div className="text-sm text-gray-400 mt-1">
+                              ≈ ${fromToken.symbol === "APT" && toToken.symbol === "USDC" && realPrice !== "-" 
+                                ? (parseFloat(fromAmount || "0") * parseFloat(realPrice.replace("$", ""))).toFixed(2)
+                                : "0.00"
+                              }
+                            </div>
                           </div>
                           <button
                             onClick={() => setShowFromDropdown(!showFromDropdown)}
@@ -978,9 +1154,57 @@ export default function SwapPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="text-2xl font-bold text-white">
-                              {bestQuote ? bestQuote.outputAmount : "0"}
+                              {bestQuote && toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
+                                ? (() => {
+                                    const amountA = parseFloat(fromAmount);
+                                    // Ưu tiên realPrice nếu có, nếu không lấy từ marketData
+                                    let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
+                                      ? parseFloat(realPrice.replace("$", ""))
+                                      : null;
+                                    if (!P && marketData) {
+                                      // Tìm giá USD của fromToken trong marketData
+                                      const pair = `${fromToken.symbol}/${toToken.symbol}`;
+                                      const found = marketData.find((row) => row.pair === pair);
+                                      if (found && found.price) {
+                                        P = parseFloat(found.price.replace("$", ""));
+                                      }
+                                    }
+                                    if (!P) return parseFloat(bestQuote.outputAmount).toFixed(6);
+                                    const fee = bestQuote.fee ? parseFloat(bestQuote.fee) / 100 : 0;
+                                    const priceImpact = bestQuote.priceImpact ? parseFloat(bestQuote.priceImpact) / 100 : 0;
+                                    const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
+                                    return amountB.toFixed(6);
+                                  })()
+                                : bestQuote && toToken && bestQuote.outputAmount
+                                  ? parseFloat(bestQuote.outputAmount).toFixed(6)
+                                  : "0"}
                             </div>
-                            <div className="text-sm text-gray-400 mt-1">≈ $0.00</div>
+                            <div className="text-sm text-gray-400 mt-1">
+                              ≈ ${
+                                bestQuote && toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
+                                  ? (() => {
+                                      const amountA = parseFloat(fromAmount);
+                                      let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
+                                        ? parseFloat(realPrice.replace("$", ""))
+                                        : null;
+                                      if (!P && marketData) {
+                                        const pair = `${fromToken.symbol}/${toToken.symbol}`;
+                                        const found = marketData.find((row) => row.pair === pair);
+                                        if (found && found.price) {
+                                          P = parseFloat(found.price.replace("$", ""));
+                                        }
+                                      }
+                                      if (!P) return parseFloat(bestQuote.outputAmount).toFixed(2);
+                                      const fee = bestQuote.fee ? parseFloat(bestQuote.fee) / 100 : 0;
+                                      const priceImpact = bestQuote.priceImpact ? parseFloat(bestQuote.priceImpact) / 100 : 0;
+                                      const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
+                                      return amountB.toFixed(2);
+                                    })()
+                                  : bestQuote && toToken && bestQuote.outputAmount && toToken.symbol === "USDC"
+                                    ? parseFloat(bestQuote.outputAmount).toFixed(2)
+                                    : "0.00"
+                              }
+                            </div>
                           </div>
                           <button
                             onClick={() => setShowToDropdown(!showToDropdown)}
@@ -1030,7 +1254,7 @@ export default function SwapPage() {
                           {bestQuote && (
                             <Badge className="swap-badge text-xs">
                               <Zap className="w-3 h-3 mr-1" />
-                              Best: {bestQuote.dex}
+                              Best: {getDexName(bestQuote)}
                             </Badge>
                           )}
                         </div>
@@ -1044,7 +1268,7 @@ export default function SwapPage() {
                             <table className="min-w-full text-xs text-left">
                               <thead>
                                 <tr className="text-gray-400 border-b border-gray-700">
-                                  <th className="py-1 pr-4 text-left">DEX</th>
+                                  <th className="py-1 pr-4 text-left w-32">DEX</th>
                                   <th className="py-1 pr-4 text-right">Output</th>
                                   <th className="py-1 pr-4 text-right">Fee (%)</th>
                                   <th className="py-1 pr-4 text-right">Price Impact</th>
@@ -1053,14 +1277,35 @@ export default function SwapPage() {
                               </thead>
                               <tbody>
                                 {sortedQuotes.map((q, idx) => (
-                                  <tr key={q.dex} className={bestQuote && q.dex === bestQuote.dex ? "bg-yellow-900/20" : ""}>
-                                    <td className="py-1 pr-4 font-semibold text-white text-left inline-flex items-center">
-                                      {q.dex}
-                                      {bestQuote && q.dex === bestQuote.dex && (
+                                  <tr key={q.dex + q.outputAmount} className={bestQuote && parseFloat(q.outputAmount) === parseFloat(bestQuote.outputAmount) ? "bg-yellow-900/20" : ""}>
+                                    <td className="py-1 pr-4 font-semibold text-white text-left w-32">
+                                      {getDexName(q)}
+                                      {bestQuote && parseFloat(q.outputAmount) === parseFloat(bestQuote.outputAmount) && (
                                         <span className="ml-2 text-yellow-400 font-bold">Best</span>
                                       )}
                                     </td>
-                                    <td className="py-1 pr-4 text-white text-right">{q.outputAmount}</td>
+                                    <td className="py-1 pr-4 text-white text-right">
+  {toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
+    ? (() => {
+        const amountA = parseFloat(fromAmount);
+        let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
+          ? parseFloat(realPrice.replace("$", ""))
+          : null;
+        if (!P && marketData) {
+          const pair = `${fromToken.symbol}/${toToken.symbol}`;
+          const found = marketData.find((row) => row.pair === pair);
+          if (found && found.price) {
+            P = parseFloat(found.price.replace("$", ""));
+          }
+        }
+        if (!P) return parseFloat(q.outputAmount).toFixed(6);
+        const fee = q.fee ? parseFloat(q.fee) / 100 : 0;
+        const priceImpact = q.priceImpact ? parseFloat(q.priceImpact) / 100 : 0;
+        const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
+        return amountB.toFixed(6);
+      })()
+    : q.outputAmount}
+</td>
                                     <td className="py-1 pr-4 text-white text-right">{q.fee}</td>
                                     <td className="py-1 pr-4 text-white text-right">{q.priceImpact}</td>
                                     <td className="py-1 pr-4 text-white text-left">{q.route.join(" → ")}</td>
