@@ -1,288 +1,259 @@
-# AptosSwap Mainnet Deployment Guide
-
-## 🚀 Quick Start
-
-### Option 1: Automated Deployment (Recommended)
-```bash
-# Build and prepare for deployment
-./deploy-simple.sh
-
-# Deploy smart contract to mainnet
-./deploy-contract.sh
-
-# Deploy frontend to Vercel
-./deploy-vercel.sh
-```
-
-### Option 2: Manual Deployment
-Follow the detailed steps below.
-
----
+# 🚀 Hướng dẫn Deploy Smart Contract lên Mainnet Aptos
 
 ## 📋 Prerequisites
 
-1. **Aptos CLI** - For smart contract deployment
-2. **Node.js & pnpm** - For frontend build
-3. **Vercel account** - For frontend hosting (optional)
-4. **APT tokens** - For gas fees (recommended: 1-2 APT)
-
----
-
-## 🔧 Smart Contract Deployment
-
-### Step 1: Install Aptos CLI
+### 1. Cài đặt Aptos CLI
 ```bash
+# Cài đặt Aptos CLI
 curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+
+# Kiểm tra version
+aptos --version
 ```
 
-### Step 2: Prepare Wallet
-1. Create a new wallet or use existing one
-2. Ensure you have APT for gas fees
-3. Get your private key ready
-
-### Step 3: Configure Mainnet Profile
+### 2. Tạo ví và lấy private key
 ```bash
-cd aptos-multiswap-aggregator-v3
-aptos init --profile mainnet --network mainnet
-```
-- Enter your private key when prompted
-- Use endpoint: `https://fullnode.mainnet.aptoslabs.com`
+# Tạo ví mới (nếu chưa có)
+aptos init --profile mainnet
 
-### Step 4: Deploy Contract
-```bash
-# Compile
-aptos move compile --package-dir . --named-addresses aggregator=0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8
-
-# Deploy
-aptos move publish --profile mainnet --package-dir . --named-addresses aggregator=0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8
+# Hoặc import ví hiện có
+aptos key import --profile mainnet
 ```
 
-### Step 5: Get Contract Address
+### 3. Kiểm tra balance
 ```bash
+# Kiểm tra balance APT
 aptos account list --profile mainnet
 ```
-Note the deployed module address for the next step.
 
----
+## 🔧 Bước 1: Cấu hình Mainnet
 
-## 🌐 Frontend Deployment
+### 1.1 Cập nhật aptos.config.toml
+```toml
+[mainnet]
+private_key = "0xYOUR_PRIVATE_KEY_HERE"
+account = "0xYOUR_ACCOUNT_ADDRESS"
+rest_url = "https://fullnode.mainnet.aptoslabs.com"
+```
 
-### Option A: Vercel (Recommended)
-
-#### Step 1: Install Vercel CLI
+### 1.2 Kiểm tra cấu hình
 ```bash
-npm install -g vercel
+# Kiểm tra profile mainnet
+aptos account list --profile mainnet
+
+# Kiểm tra balance
+aptos account list --profile mainnet --query balance
 ```
 
-#### Step 2: Login to Vercel
+## 🏗️ Bước 2: Compile Smart Contract
+
+### 2.1 Compile với mainnet profile
 ```bash
-vercel login
+cd aptos-multiswap-aggregator-v3
+
+# Compile smart contract
+aptos move compile --profile mainnet
+
+# Kiểm tra build thành công
+ls -la build/AptosMultiswapAggregator/bytecode_modules/
 ```
 
-#### Step 3: Deploy
+### 2.2 Kiểm tra bytecode
 ```bash
-./deploy-vercel.sh
+# Xem bytecode đã compile
+aptos move list --profile mainnet
 ```
 
-#### Step 4: Configure Environment Variables
-In Vercel dashboard:
-1. Go to your project settings
-2. Add environment variables:
-   - `NEXT_PUBLIC_APTOS_NETWORK=mainnet`
-   - `NEXT_PUBLIC_APTOS_NODE_URL=https://fullnode.mainnet.aptoslabs.com/v1`
-   - `NEXT_PUBLIC_AGGREGATOR_CONTRACT=<your_deployed_contract_address>`
+## 🚀 Bước 3: Deploy Smart Contract
 
-### Option B: Self-Hosted
-
-#### Step 1: Build Application
+### 3.1 Deploy lên mainnet
 ```bash
-./deploy-simple.sh
+# Deploy smart contract
+aptos move publish --profile mainnet --named-addresses aggregator=0xYOUR_ACCOUNT_ADDRESS
+
+# Lưu ý: Thay 0xYOUR_ACCOUNT_ADDRESS bằng địa chỉ ví của bạn
 ```
 
-#### Step 2: Upload to Server
+### 3.2 Kiểm tra deploy thành công
 ```bash
-# Upload deployment folder to your server
-scp -r deployment/ user@your-server:/path/to/app/
+# Kiểm tra module đã deploy
+aptos move list --profile mainnet
 
-# SSH into server and start
-ssh user@your-server
-cd /path/to/app
-chmod +x start.sh
-./start.sh
+# Xem transaction hash
+aptos account list --profile mainnet --query transactions
 ```
 
-### Option C: Netlify
+## ⚙️ Bước 4: Initialize Smart Contract
 
-#### Step 1: Push to GitHub
+### 4.1 Initialize aggregator
 ```bash
-git add .
-git commit -m "Deploy to mainnet"
-git push origin main
+# Initialize smart contract
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::initialize
 ```
 
-#### Step 2: Connect to Netlify
-1. Go to [netlify.com](https://netlify.com)
-2. Connect your GitHub repository
-3. Set build command: `pnpm build`
-4. Set publish directory: `.next`
-5. Add environment variables in Netlify dashboard
-
----
-
-## ⚙️ Environment Configuration
-
-### Update .env.local
+### 4.2 Setup default pools
 ```bash
-# Copy mainnet environment
-cp env.mainnet .env.local
-
-# Edit with your contract addresses
-nano .env.local
+# Setup pools mặc định
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::setup_default_pools
 ```
 
-### Required Environment Variables
-```env
-NEXT_PUBLIC_APTOS_NETWORK=mainnet
-NEXT_PUBLIC_APTOS_NODE_URL=https://fullnode.mainnet.aptoslabs.com/v1
-NEXT_PUBLIC_AGGREGATOR_CONTRACT=<your_contract_address>
-NEXT_PUBLIC_LIQUIDSWAP_CONTRACT=0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12
-NEXT_PUBLIC_ECONIA_CONTRACT=0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5
-```
+## 🧪 Bước 5: Test Smart Contract
 
----
-
-## 🧪 Testing
-
-### 1. Test Wallet Connection
-- Connect Petra wallet
-- Connect Pontem wallet
-- Verify wallet detection
-
-### 2. Test Swap Functionality
-- Try swapping small amounts
-- Test different tokens
-- Verify transaction success
-
-### 3. Test Contract Integration
-- Check contract calls
-- Verify gas estimation
-- Test error handling
-
----
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-#### 1. Contract Deployment Fails
-- Check APT balance
-- Verify private key
-- Check network connectivity
-
-#### 2. Frontend Build Fails
+### 5.1 Test get_best_quote
 ```bash
-# Clean and rebuild
-rm -rf .next
-rm -rf node_modules/.cache
-pnpm install
-pnpm build
+# Test simulate_swap
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::simulate_swap \
+  --type-args 0x1::aptos_coin::AptosCoin 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge \
+  --args 1000000
 ```
 
-#### 3. Wallet Connection Issues
-- Check browser console for errors
-- Verify wallet extension is installed
-- Check network configuration
+### 5.2 Test get_quote_details
+```bash
+# Test get_quote_details
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::get_quote_details \
+  --type-args 0x1::aptos_coin::AptosCoin 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge \
+  --args 1000000
+```
 
-#### 4. Environment Variables Not Loading
-- Restart development server
-- Check .env.local file
-- Verify variable names
+## 🔍 Bước 6: Verify Deployment
 
----
+### 6.1 Kiểm tra module trên explorer
+```bash
+# Mở Aptos Explorer
+open https://explorer.aptoslabs.com/account/0xYOUR_ACCOUNT_ADDRESS?network=mainnet
+```
+
+### 6.2 Kiểm tra events
+```bash
+# Xem events của smart contract
+aptos account list --profile mainnet --query events
+```
+
+## 📝 Bước 7: Cập nhật Frontend
+
+### 7.1 Cập nhật contract address
+```javascript
+// Trong file config hoặc constants
+const CONTRACT_ADDRESS = "0xYOUR_ACCOUNT_ADDRESS";
+const MODULE_NAME = "aggregator";
+```
+
+### 7.2 Test frontend integration
+```bash
+# Chạy frontend
+cd ..
+pnpm dev
+```
+
+## ⚠️ Lưu ý quan trọng
+
+### 1. Gas Fees
+- Mainnet gas fees cao hơn testnet
+- Đảm bảo có đủ APT cho gas fees
+- Ước tính: 0.1-0.5 APT cho deploy + initialize
+
+### 2. Security
+- Không chia sẻ private key
+- Sử dụng .env file để lưu private key
+- Backup private key an toàn
+
+### 3. Testing
+- Test kỹ trên testnet trước khi deploy mainnet
+- Verify tất cả functions hoạt động đúng
+- Test với amounts nhỏ trước
+
+## 🔧 Troubleshooting
+
+### 1. Compile Errors
+```bash
+# Clean build
+aptos move clean --profile mainnet
+
+# Recompile
+aptos move compile --profile mainnet
+```
+
+### 2. Deploy Errors
+```bash
+# Kiểm tra balance
+aptos account list --profile mainnet --query balance
+
+# Kiểm tra sequence number
+aptos account list --profile mainnet --query sequence_number
+```
+
+### 3. Initialize Errors
+```bash
+# Kiểm tra module đã deploy
+aptos move list --profile mainnet
+
+# Kiểm tra permissions
+aptos account list --profile mainnet
+```
 
 ## 📊 Monitoring
 
-### 1. Contract Monitoring
-- Monitor contract transactions
-- Check gas usage
-- Track contract interactions
+### 1. Transaction Monitoring
+```bash
+# Monitor transactions
+aptos account list --profile mainnet --query transactions
 
-### 2. Frontend Monitoring
-- Monitor user interactions
-- Track error rates
-- Monitor performance
+# Monitor events
+aptos account list --profile mainnet --query events
+```
 
-### 3. Network Monitoring
-- Monitor Aptos network status
-- Check RPC endpoint health
-- Track transaction success rates
+### 2. Explorer Monitoring
+- [Aptos Explorer](https://explorer.aptoslabs.com/)
+- [Aptoscan](https://aptoscan.com/)
 
----
+## 🎯 Checklist
 
-## 🔒 Security Considerations
+- [ ] Cài đặt Aptos CLI
+- [ ] Tạo/import ví với đủ APT
+- [ ] Cấu hình mainnet profile
+- [ ] Compile smart contract
+- [ ] Deploy smart contract
+- [ ] Initialize aggregator
+- [ ] Setup default pools
+- [ ] Test các functions
+- [ ] Verify trên explorer
+- [ ] Cập nhật frontend
+- [ ] Test frontend integration
 
-### 1. Private Key Security
-- Never commit private keys to git
-- Use environment variables
-- Consider hardware wallets for large amounts
+## 🚨 Emergency Procedures
 
-### 2. Contract Security
-- Audit smart contract code
-- Test thoroughly on testnet
-- Monitor for vulnerabilities
+### 1. Pause Smart Contract
+```bash
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::pause
+```
 
-### 3. Frontend Security
-- Use HTTPS in production
-- Implement proper CORS
-- Sanitize user inputs
+### 2. Unpause Smart Contract
+```bash
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::unpause
+```
 
----
+### 3. Update Config
+```bash
+aptos move run --profile mainnet \
+  --function-id 0xYOUR_ACCOUNT_ADDRESS::aggregator::update_config \
+  --args 0xNEW_FEE_RECIPIENT NEW_PLATFORM_FEE NEW_MAX_SLIPPAGE NEW_QUOTE_CACHE_DURATION NEW_MAX_ROUTE_HOPS NEW_MIN_LIQUIDITY_THRESHOLD
+```
 
-## 📈 Post-Deployment
+## 📞 Support
 
-### 1. Documentation
-- Update README.md
-- Document deployment process
-- Create user guides
-
-### 2. Monitoring Setup
-- Set up error tracking
-- Configure analytics
-- Monitor performance
-
-### 3. Community
-- Announce launch
-- Share documentation
-- Gather feedback
-
----
-
-## 🆘 Support
-
-If you encounter issues:
-
-1. Check the troubleshooting section
-2. Review console logs
-3. Test on testnet first
-4. Check Aptos network status
-5. Verify wallet configuration
+Nếu gặp vấn đề:
+1. Kiểm tra logs chi tiết
+2. Verify cấu hình
+3. Test trên testnet trước
+4. Tham khảo [Aptos Documentation](https://aptos.dev/)
+5. Join [Aptos Discord](https://discord.gg/aptos)
 
 ---
 
-## 📝 Checklist
-
-- [ ] Aptos CLI installed
-- [ ] Wallet with APT configured
-- [ ] Smart contract deployed
-- [ ] Contract address noted
-- [ ] Frontend built successfully
-- [ ] Environment variables configured
-- [ ] Frontend deployed
-- [ ] Wallet connection tested
-- [ ] Swap functionality tested
-- [ ] Error handling verified
-- [ ] Documentation updated
-
----
-
-**🎉 Congratulations! Your AptosSwap is now live on mainnet!** 
+**🎉 Chúc mừng! Smart contract đã được deploy thành công lên mainnet!** 

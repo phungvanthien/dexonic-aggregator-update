@@ -1,10 +1,10 @@
 [package]
-name = "AptosMultiswapAggregator"
+name = "AptosMultiswapAggregatorV6"
 version = "1.0.0"
 authors = ["AptosSwap Team <team@aptosswap.com>"]
 
 [addresses]
-aggregator = "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc"
+aggregator = "0x13a0e1a314426849cf4ac86edb586b38e6271c1245242077c4a873b4bdc942c9"
 liquidswap = "0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12"
 econia = "0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5"
 aptos_framework = "0x1"

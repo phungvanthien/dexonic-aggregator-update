@@ -23,8 +23,8 @@ rest_url = "https://fullnode.testnet.aptoslabs.com"
 faucet_url = "https://faucet.testnet.aptoslabs.com"
 
 [mainnet]
-private_key = "0x..."
-account = "0x..."
+private_key = "ed25519-priv-0x82602ea7a4ca10cb4ac922f89384f51b4044854f80cf941099e93084b5e08f3b"
+account = "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc"
 rest_url = "https://fullnode.mainnet.aptoslabs.com"
 
 [local]

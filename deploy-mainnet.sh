@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# AptosSwap Mainnet Deployment Script
-# This script will deploy the smart contract and build the frontend for mainnet
+# 🚀 Mainnet Deployment Script
+# Hướng dẫn deploy smart contract lên mainnet Aptos
 
-set -e
+set -e  # Exit on any error
 
-echo "🚀 Starting AptosSwap Mainnet Deployment..."
+echo "🚀 Starting Mainnet Deployment..."
+echo "=================================="
 
 # Colors for output
 RED='\033[0;31m'
@@ -32,165 +33,141 @@ print_error() {
 }
 
 # Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    print_error "Please run this script from the project root directory"
+if [ ! -f "aptos.config.toml" ]; then
+    print_error "Please run this script from the aptos-multiswap-aggregator-v3 directory"
     exit 1
 fi
 
-# Step 1: Clean build cache
-print_status "Cleaning build cache..."
-rm -rf .next
-rm -rf node_modules/.cache
-rm -rf .swc
-
-# Step 2: Install dependencies
-print_status "Installing dependencies..."
-pnpm install
-
-# Step 3: Build smart contract
-print_status "Building smart contract..."
-cd aptos-multiswap-aggregator-v3
-
-# Check if aptos CLI is installed
+# Step 1: Check Aptos CLI
+print_status "Checking Aptos CLI installation..."
 if ! command -v aptos &> /dev/null; then
-    print_warning "Aptos CLI not found. Installing..."
-    curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+    print_error "Aptos CLI not found. Please install it first:"
+    echo "curl -fsSL \"https://aptos.dev/scripts/install_cli.py\" | python3"
+    exit 1
+fi
+print_success "Aptos CLI found: $(aptos --version)"
+
+# Step 2: Check mainnet profile
+print_status "Checking mainnet profile..."
+if ! aptos account list --profile mainnet &> /dev/null; then
+    print_warning "Mainnet profile not configured. Please configure it first:"
+    echo "aptos init --profile mainnet"
+    echo "Or update aptos.config.toml with your mainnet credentials"
+    exit 1
+fi
+print_success "Mainnet profile configured"
+
+# Step 3: Check balance
+print_status "Checking APT balance..."
+BALANCE=$(aptos account list --profile mainnet --query balance | grep -o '[0-9]*' | head -1)
+if [ "$BALANCE" -lt 100000 ]; then
+    print_warning "Low balance detected: $BALANCE octa APT"
+    print_warning "Recommended: At least 0.1 APT for deployment"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    print_success "Balance OK: $BALANCE octa APT"
 fi
 
-# Compile the contract
-aptos move compile --package-dir . --named-addresses aggregator=0x1
+# Step 4: Get account address
+print_status "Getting account address..."
+ACCOUNT_ADDRESS=$(aptos account list --profile mainnet --query account_address | grep -o '0x[a-fA-F0-9]*')
+print_success "Account address: $ACCOUNT_ADDRESS"
 
+# Step 5: Compile smart contract
+print_status "Compiling smart contract..."
+if aptos move compile --profile mainnet; then
 print_success "Smart contract compiled successfully"
-
-# Step 4: Deploy to mainnet (requires user input)
-print_warning "To deploy to mainnet, you need to:"
-print_warning "1. Have a wallet with APT for gas fees"
-print_warning "2. Configure your private key in aptos.config.toml"
-print_warning "3. Run: aptos move publish --profile mainnet"
-
-# Step 5: Build frontend for production
-print_status "Building frontend for production..."
-cd ..
-
-# Copy mainnet environment
-cp env.mainnet .env.local
-
-# Build the application
-pnpm build
-
-print_success "Frontend built successfully for production"
-
-# Step 6: Create deployment package
-print_status "Creating deployment package..."
-mkdir -p deployment
-cp -r .next deployment/
-cp -r public deployment/
-cp package.json deployment/
-cp next.config.mjs deployment/
-cp .env.local deployment/
-
-# Create deployment script
-cat > deployment/start.sh << 'EOF'
-#!/bin/bash
-export NODE_ENV=production
-pnpm install --prod
-pnpm start
-EOF
-
-chmod +x deployment/start.sh
-
-print_success "Deployment package created in ./deployment/"
-
-# Step 7: Create deployment instructions
-cat > DEPLOYMENT_INSTRUCTIONS.md << 'EOF'
-# AptosSwap Mainnet Deployment Instructions
-
-## Prerequisites
-1. Aptos CLI installed
-2. Wallet with APT for gas fees
-3. Private key configured in aptos.config.toml
-
-## Smart Contract Deployment
-
-1. Navigate to the contract directory:
-   ```bash
-   cd aptos-multiswap-aggregator-v3
-   ```
-
-2. Configure your mainnet profile:
-   ```bash
-   aptos init --profile mainnet
-   ```
-   - Enter your private key
-   - Use endpoint: https://fullnode.mainnet.aptoslabs.com
-
-3. Deploy the contract:
-   ```bash
-   aptos move publish --profile mainnet
-   ```
-
-4. Note the deployed module address and update .env.local
-
-## Frontend Deployment
-
-### Option 1: Vercel (Recommended)
-1. Push code to GitHub
-2. Connect repository to Vercel
-3. Set environment variables in Vercel dashboard
-4. Deploy
-
-### Option 2: Self-hosted
-1. Upload deployment package to your server
-2. Run: `cd deployment && ./start.sh`
-
-### Option 3: Netlify
-1. Push code to GitHub
-2. Connect to Netlify
-3. Set build command: `pnpm build`
-4. Set publish directory: `.next`
-
-## Environment Variables
-Update .env.local with your contract addresses after deployment.
-
-## Verification
-1. Test wallet connection
-2. Test swap functionality
-3. Verify contract interactions
-EOF
-
-print_success "Deployment instructions created: DEPLOYMENT_INSTRUCTIONS.md"
-
-# Step 8: Create quick deployment script
-cat > quick-deploy.sh << 'EOF'
-#!/bin/bash
-
-# Quick deployment script for Vercel
-echo "🚀 Quick Deploy to Vercel"
-
-# Check if vercel CLI is installed
-if ! command -v vercel &> /dev/null; then
-    echo "Installing Vercel CLI..."
-    npm install -g vercel
+else
+    print_error "Compilation failed"
+    exit 1
 fi
 
-# Deploy to Vercel
-echo "Deploying to Vercel..."
-vercel --prod
+# Step 6: Deploy smart contract
+print_status "Deploying smart contract..."
+if aptos move publish --profile mainnet --named-addresses aggregator=$ACCOUNT_ADDRESS; then
+    print_success "Smart contract deployed successfully"
+else
+    print_error "Deployment failed"
+    exit 1
+fi
 
-echo "✅ Deployment complete!"
+# Step 7: Initialize aggregator
+print_status "Initializing aggregator..."
+if aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::initialize; then
+    print_success "Aggregator initialized successfully"
+else
+    print_error "Initialization failed"
+    exit 1
+fi
+
+# Step 8: Setup default pools
+print_status "Setting up default pools..."
+if aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::setup_default_pools; then
+    print_success "Default pools setup successfully"
+else
+    print_error "Pool setup failed"
+    exit 1
+fi
+
+# Step 9: Test smart contract
+print_status "Testing smart contract..."
+if aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::simulate_swap --type-args 0x1::aptos_coin::AptosCoin 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge --args 1000000; then
+    print_success "Smart contract test passed"
+else
+    print_error "Smart contract test failed"
+    exit 1
+fi
+
+# Step 10: Save deployment info
+print_status "Saving deployment information..."
+cat > deployment-info.txt << EOF
+# Mainnet Deployment Information
+# Generated on: $(date)
+
+CONTRACT_ADDRESS=$ACCOUNT_ADDRESS
+MODULE_NAME=aggregator
+NETWORK=mainnet
+NODE_URL=https://fullnode.mainnet.aptoslabs.com
+
+# Environment Variables for Frontend
+NEXT_PUBLIC_APTOS_NETWORK=mainnet
+NEXT_PUBLIC_APTOS_NODE_URL=https://fullnode.mainnet.aptoslabs.com/v1
+NEXT_PUBLIC_AGGREGATOR_CONTRACT=$ACCOUNT_ADDRESS
+
+# Explorer Links
+EXPLORER_URL=https://explorer.aptoslabs.com/account/$ACCOUNT_ADDRESS?network=mainnet
+APTOSCAN_URL=https://aptoscan.com/account/$ACCOUNT_ADDRESS
+
+# Test Commands
+# Test simulate_swap:
+# aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::simulate_swap --type-args 0x1::aptos_coin::AptosCoin 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge --args 1000000
+
+# Test get_quote_details:
+# aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::get_quote_details --type-args 0x1::aptos_coin::AptosCoin 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge --args 1000000
 EOF
 
-chmod +x quick-deploy.sh
+print_success "Deployment information saved to deployment-info.txt"
 
-print_success "Quick deployment script created: quick-deploy.sh"
-
-echo ""
-print_success "🎉 AptosSwap Mainnet Deployment Setup Complete!"
-echo ""
-echo "Next steps:"
-echo "1. Configure your private key in aptos.config.toml"
-echo "2. Deploy smart contract: cd aptos-multiswap-aggregator-v3 && aptos move publish --profile mainnet"
-echo "3. Update contract addresses in .env.local"
-echo "4. Deploy frontend: ./quick-deploy.sh (for Vercel) or follow DEPLOYMENT_INSTRUCTIONS.md"
-echo ""
-echo "For detailed instructions, see: DEPLOYMENT_INSTRUCTIONS.md" 
+# Step 11: Display results
+echo
+echo "🎉 Deployment completed successfully!"
+echo "====================================="
+echo "Contract Address: $ACCOUNT_ADDRESS"
+echo "Network: Mainnet"
+echo "Explorer: https://explorer.aptoslabs.com/account/$ACCOUNT_ADDRESS?network=mainnet"
+echo
+echo "📝 Next steps:"
+echo "1. Update your frontend with the contract address"
+echo "2. Test the frontend integration"
+echo "3. Monitor the contract on explorer"
+echo "4. Check deployment-info.txt for environment variables"
+echo
+echo "🔧 Emergency commands:"
+echo "Pause: aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::pause"
+echo "Unpause: aptos move run --profile mainnet --function-id ${ACCOUNT_ADDRESS}::aggregator::unpause"
+echo
+print_success "Mainnet deployment completed! 🚀" 

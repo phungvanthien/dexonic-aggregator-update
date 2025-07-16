@@ -1,9 +1,9 @@
 ---
 compiled_package_info:
-  package_name: AptosMultiswapAggregator
+  package_name: AptosMultiswapAggregatorV6
   address_alias_instantiation:
     Extensions: "0000000000000000000000000000000000000000000000000000000000000001"
-    aggregator: dc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc
+    aggregator: 13a0e1a314426849cf4ac86edb586b38e6271c1245242077c4a873b4bdc942c9
     aptos_framework: "0000000000000000000000000000000000000000000000000000000000000001"
     aptos_fungible_asset: 000000000000000000000000000000000000000000000000000000000000000a
     aptos_std: "0000000000000000000000000000000000000000000000000000000000000001"
@@ -14,7 +14,7 @@ compiled_package_info:
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm: "0000000000000000000000000000000000000000000000000000000000000000"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 3F8CA12D6508CCE980CA3445E3FDE5D6686B8FD41534AAA5249241E4059B74AE
+  source_digest: 4A70C5E2B00D881A0F78843A170FA3E2397CA3CA3A0ED0B340499759035A4BF3
   build_flags:
     dev_mode: false
     test_mode: false
@@ -25,10 +25,9 @@ compiled_package_info:
     full_model_generation: true
     install_dir: ~
     force_recompilation: false
-    additional_named_addresses:
-      aggregator: dc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc
+    additional_named_addresses: {}
     fetch_deps_only: false
-    skip_fetch_latest_git_deps: false
+    skip_fetch_latest_git_deps: true
     compiler_config:
       bytecode_version: 7
       known_attributes:

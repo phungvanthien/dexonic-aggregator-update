@@ -1,43 +1,56 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import "../../styles/swap.css"
-import { ArrowUpDown, TrendingUp, Zap, RefreshCw, ChevronDown, ArrowLeft, LogOut, User, Users, ChevronUp } from "lucide-react"
-import { useMultiWallet } from "@/components/wallet/multi-wallet-provider"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { ChatButton } from "@/components/chat/chat-button"
-import { MobileMenuBar } from "@/components/swap/mobile-menu-bar"
-import { MultiWalletSelector } from "@/components/wallet/multi-wallet-selector"
-import { AdminInitializer } from "@/components/swap/admin-initializer"
-import { WalletDebug } from "@/components/wallet/wallet-debug"
-import { Progress } from "@/components/ui/progress"
+import { useState, useEffect, useRef } from "react";
+import "../../styles/swap.css";
+import {
+  ArrowUpDown,
+  TrendingUp,
+  Zap,
+  RefreshCw,
+  ChevronDown,
+  ArrowLeft,
+  LogOut,
+  User,
+  Users,
+  ChevronUp,
+} from "lucide-react";
+import { useMultiWallet } from "@/components/wallet/multi-wallet-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { ChatButton } from "@/components/chat/chat-button";
+import { MobileMenuBar } from "@/components/swap/mobile-menu-bar";
+import { MultiWalletSelector } from "@/components/wallet/multi-wallet-selector";
+import { AdminInitializer } from "@/components/swap/admin-initializer";
+import { WalletDebug } from "@/components/wallet/wallet-debug";
+import { Progress } from "@/components/ui/progress";
 import { Dispatch, SetStateAction } from "react";
 
 interface Token {
-  symbol: string
-  name: string
-  address: string
-  decimals: number
-  logoUrl: string
+  symbol: string;
+  name: string;
+  address: string;
+  decimals: number;
+  logoUrl: string;
 }
 
 interface Quote {
-  dex: string
-  outputAmount: string
-  priceImpact: string
-  fee: string
-  route: string[]
+  dex: string;
+  outputAmount: string;
+  priceImpact: string;
+  fee: string;
+  route: string[];
+  isBest?: boolean; // Thêm thuộc tính này để fix linter error
+  pool_address?: string; // Thêm thuộc tính này để lưu pool_address
 }
 
 interface AppUser {
-  id: string
-  name: string
-  email: string
-  image: string
+  id: string;
+  name: string;
+  email: string;
+  image: string;
 }
 
 const tokens: Token[] = [
@@ -51,40 +64,51 @@ const tokens: Token[] = [
   {
     symbol: "USDC",
     name: "USD Coin",
-    address: "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC",
+    address:
+      "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC",
     decimals: 6,
     logoUrl: "/usdc-logo.svg",
   },
   {
     symbol: "USDT",
     name: "Tether USD",
-    address: "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT",
+    address:
+      "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT",
     decimals: 6,
     logoUrl: "/usdt-logo.svg",
   },
   {
     symbol: "WBTC",
     name: "Wrapped Bitcoin",
-    address: "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::multiswap_aggregator_v2::WBTC",
+    address:
+      "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::multiswap_aggregator_v2::WBTC",
     decimals: 8,
     logoUrl: "/wbtc-logo.svg",
   },
   {
     symbol: "WETH",
     name: "Wrapped Ethereum",
-    address: "0xcc8a89c8dce9693d354449f1f73e60e14e347417854f029db5bc8e7454008abb::coin::T",
+    address:
+      "0xcc8a89c8dce9693d354449f1f73e60e14e347417854f029db5bc8e7454008abb::coin::T",
     decimals: 8,
     logoUrl: "/weth-logo-diamond.svg",
-  }
-]
+  },
+];
 
 // Aggregator configuration
-const AGGREGATOR_ADDRESS = "0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc"
-const SENDER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
-const RECEIVER_ADDRESS = "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8"
+const AGGREGATOR_ADDRESS =
+  "0x45636581cf77d041cd74a8f3ec0e97edbb0a3f827de5a004eb832a31aacba127";
+const SENDER_ADDRESS =
+  "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8";
+const RECEIVER_ADDRESS =
+  "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8";
 
 // Custom hook lấy số dư cho ví đang kết nối (Petra hoặc Pontem)
-function useWalletBalances(tokens: Token[], address: string | null, connected: boolean) {
+function useWalletBalances(
+  tokens: Token[],
+  address: string | null,
+  connected: boolean
+) {
   const [balances, setBalances] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -96,23 +120,29 @@ function useWalletBalances(tokens: Token[], address: string | null, connected: b
       try {
         console.log(`Fetching balances for address: ${address}`);
         // Use the same logic to avoid double /v1/
-        const nodeUrl = process.env.NEXT_PUBLIC_APTOS_NODE_URL || "https://fullnode.mainnet.aptoslabs.com"
-        const baseUrl = nodeUrl.endsWith('/v1') ? nodeUrl.slice(0, -3) : nodeUrl
+        const nodeUrl =
+          process.env.NEXT_PUBLIC_APTOS_NODE_URL ||
+          "https://fullnode.mainnet.aptoslabs.com";
+        const baseUrl = nodeUrl.endsWith("/v1")
+          ? nodeUrl.slice(0, -3)
+          : nodeUrl;
         const res = await fetch(`${baseUrl}/v1/accounts/${address}/resources`);
         if (!res.ok) {
           console.log(`Failed to fetch resources: ${res.status}`);
           return;
         }
-        
+
         const resources = await res.json();
         console.log("All resources:", resources);
-        
+
         const newBalances: Record<string, string> = {};
-        
+
         // Tìm tất cả CoinStore resources
-        const coinStores = resources.filter((r: any) => r.type.includes("0x1::coin::CoinStore"));
+        const coinStores = resources.filter((r: any) =>
+          r.type.includes("0x1::coin::CoinStore")
+        );
         console.log("All CoinStore resources:", coinStores);
-        
+
         for (const token of tokens) {
           // Tìm CoinStore cho token chính xác
           const coinStore = resources.find((r: any) => {
@@ -122,17 +152,26 @@ function useWalletBalances(tokens: Token[], address: string | null, connected: b
             }
             return isMatch;
           });
-          
-          if (coinStore && coinStore.data && coinStore.data.coin && coinStore.data.coin.value) {
-            const balance = (Number(coinStore.data.coin.value) / Math.pow(10, token.decimals)).toFixed(6);
+
+          if (
+            coinStore &&
+            coinStore.data &&
+            coinStore.data.coin &&
+            coinStore.data.coin.value
+          ) {
+            const balance = (
+              Number(coinStore.data.coin.value) / Math.pow(10, token.decimals)
+            ).toFixed(6);
             console.log(`Balance for ${token.symbol}: ${balance}`);
             newBalances[token.symbol] = balance;
           } else {
-            console.log(`No CoinStore found for ${token.symbol} (${token.address})`);
+            console.log(
+              `No CoinStore found for ${token.symbol} (${token.address})`
+            );
             newBalances[token.symbol] = "0.000000";
           }
         }
-        
+
         console.log("Final balances:", newBalances);
         setBalances(newBalances);
       } catch (error) {
@@ -154,63 +193,74 @@ function useMarketOverview() {
     { pair: "WETH/USDC", price: "-", change: "-", positive: true },
     { pair: "WBTC/APT", price: "-", change: "-", positive: true },
     { pair: "WBTC/USDC", price: "-", change: "-", positive: true },
-  ])
-  
+  ]);
+
   useEffect(() => {
     async function fetchMarket() {
       try {
         // Fetch real APT/USDC price from Liquidswap pool
         let aptUsdcPrice = null;
         try {
-          const poolRes = await fetch('https://fullnode.mainnet.aptoslabs.com/v1/accounts/0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa/resources');
+          const poolRes = await fetch(
+            "https://fullnode.mainnet.aptoslabs.com/v1/accounts/0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa/resources"
+          );
           if (poolRes.ok) {
             const poolData = await poolRes.json();
-            const aptUsdcPool = poolData.find((r: any) => 
-              r.type.includes('TokenPairReserve') && 
-              r.type.includes('aptos_coin::AptosCoin') && 
-              r.type.includes('asset::USDC')
+            const aptUsdcPool = poolData.find(
+              (r: any) =>
+                r.type.includes("TokenPairReserve") &&
+                r.type.includes("aptos_coin::AptosCoin") &&
+                r.type.includes("asset::USDC")
             );
-            
-            if (aptUsdcPool && aptUsdcPool.data.reserve_x && aptUsdcPool.data.reserve_y) {
-              const aptReserve = parseInt(aptUsdcPool.data.reserve_x) / 100000000; // APT has 8 decimals
-              const usdcReserve = parseInt(aptUsdcPool.data.reserve_y) / 1000000; // USDC has 6 decimals
+
+            if (
+              aptUsdcPool &&
+              aptUsdcPool.data.reserve_x &&
+              aptUsdcPool.data.reserve_y
+            ) {
+              const aptReserve =
+                parseInt(aptUsdcPool.data.reserve_x) / 100000000; // APT has 8 decimals
+              const usdcReserve =
+                parseInt(aptUsdcPool.data.reserve_y) / 1000000; // USDC has 6 decimals
               aptUsdcPrice = usdcReserve / aptReserve;
-              console.log('Real APT/USDC price from pool:', aptUsdcPrice);
+              console.log("Real APT/USDC price from pool:", aptUsdcPrice);
             }
           }
         } catch (error) {
-          console.log('Failed to fetch pool price, using CoinGecko fallback');
+          console.log("Failed to fetch pool price, using CoinGecko fallback");
         }
 
         // Fallback to CoinGecko
         const res = await fetch(
           "https://api.coingecko.com/api/v3/simple/price?ids=aptos,usd-coin,tether,ethereum,wrapped-bitcoin&vs_currencies=usd&include_24hr_change=true"
-        )
-        const data = await res.json()
-        
+        );
+        const data = await res.json();
+
         // APT/USDC - use real pool price if available, otherwise CoinGecko
-        const aptPrice = aptUsdcPrice || data.aptos.usd
-        const aptChange = data.aptos.usd_24h_change
+        const aptPrice = aptUsdcPrice || data.aptos.usd;
+        const aptChange = data.aptos.usd_24h_change;
         // USDT/USDC
-        const usdtPrice = data.tether.usd
-        const usdtChange = data.tether.usd_24h_change
+        const usdtPrice = data.tether.usd;
+        const usdtChange = data.tether.usd_24h_change;
         // WETH/USDC
-        const ethPrice = data.ethereum.usd
-        const ethChange = data.ethereum.usd_24h_change
+        const ethPrice = data.ethereum.usd;
+        const ethChange = data.ethereum.usd_24h_change;
         // WETH/APT
-        const wethApt = ethPrice / aptPrice
-        const wethAptChange = ethChange - aptChange // xấp xỉ
+        const wethApt = ethPrice / aptPrice;
+        const wethAptChange = ethChange - aptChange; // xấp xỉ
         // WBTC/USDC
-        const wbtcPrice = data["wrapped-bitcoin"].usd
-        const wbtcChange = data["wrapped-bitcoin"].usd_24h_change
+        const wbtcPrice = data["wrapped-bitcoin"].usd;
+        const wbtcChange = data["wrapped-bitcoin"].usd_24h_change;
         // WBTC/APT
-        const wbtcApt = wbtcPrice / aptPrice
-        const wbtcAptChange = wbtcChange - aptChange // xấp xỉ
-        
+        const wbtcApt = wbtcPrice / aptPrice;
+        const wbtcAptChange = wbtcChange - aptChange; // xấp xỉ
+
         setMarketData([
           {
             pair: "APT/USDC",
-            price: aptUsdcPrice ? `$${aptUsdcPrice.toFixed(3)}` : `$${aptPrice.toFixed(3)}`,
+            price: aptUsdcPrice
+              ? `$${aptUsdcPrice.toFixed(3)}`
+              : `$${aptPrice.toFixed(3)}`,
             change: `${aptChange >= 0 ? "+" : ""}${aptChange.toFixed(2)}%`,
             positive: aptChange >= 0,
           },
@@ -223,7 +273,9 @@ function useMarketOverview() {
           {
             pair: "WETH/APT",
             price: `${wethApt.toFixed(3)}`,
-            change: `${wethAptChange >= 0 ? "+" : ""}${wethAptChange.toFixed(2)}%`,
+            change: `${wethAptChange >= 0 ? "+" : ""}${wethAptChange.toFixed(
+              2
+            )}%`,
             positive: wethAptChange >= 0,
           },
           {
@@ -235,7 +287,9 @@ function useMarketOverview() {
           {
             pair: "WBTC/APT",
             price: `${wbtcApt.toFixed(3)}`,
-            change: `${wbtcAptChange >= 0 ? "+" : ""}${wbtcAptChange.toFixed(2)}%`,
+            change: `${wbtcAptChange >= 0 ? "+" : ""}${wbtcAptChange.toFixed(
+              2
+            )}%`,
             positive: wbtcAptChange >= 0,
           },
           {
@@ -244,82 +298,102 @@ function useMarketOverview() {
             change: `${wbtcChange >= 0 ? "+" : ""}${wbtcChange.toFixed(2)}%`,
             positive: wbtcChange >= 0,
           },
-        ])
+        ]);
       } catch (e) {
         // fallback giữ nguyên data cũ
       }
     }
-    fetchMarket()
-    const interval = setInterval(fetchMarket, 60_000) // refresh mỗi phút
-    return () => clearInterval(interval)
-  }, [])
-  return marketData
+    fetchMarket();
+    const interval = setInterval(fetchMarket, 60_000); // refresh mỗi phút
+    return () => clearInterval(interval);
+  }, []);
+  return marketData;
 }
 
 // Mapping dex_id sang tên DEX
 function getDexName(quote: any) {
-  const dex = (quote.dex || '').toLowerCase().trim();
+  const dex = (quote.dex || "").toLowerCase().trim();
   // Trả đúng tên sàn theo quote.dex
-  if (dex === 'pancakeswap') return 'PancakeSwap';
-  if (dex === 'liquidswap') return 'Liquidswap';
-  if (dex === 'animeswap') return 'AnimeSwap';
-  if (dex === 'panora') return 'Panora';
-  if (dex === 'aries') return 'Aries';
-  if (dex === 'econia') return 'Econia';
-  if (dex === 'sushiswap') return 'SushiSwap';
-  if (dex === 'thala') return 'Thala';
-  if (dex === 'aux') return 'Aux';
+  if (dex === "pancakeswap") return "PancakeSwap";
+  if (dex === "liquidswap") return "Liquidswap";
+  if (dex === "animeswap") return "AnimeSwap";
+  if (dex === "panora") return "Panora";
+  if (dex === "aries") return "Aries";
+  if (dex === "econia") return "Econia";
+  if (dex === "sushiswap") return "SushiSwap";
+  if (dex === "thala") return "Thala";
+  if (dex === "aux") return "Aux";
   // Nếu là Aggregator contract
-  if (dex.includes('aggregator')) return 'Aggregator';
+  if (dex.includes("aggregator")) return "Aggregator";
   // Nếu có dex_id nhưng không phải các DEX trên, trả về Aggregator
-  if (quote.dex_id) return 'Aggregator';
+  if (quote.dex_id) return "Aggregator";
   // Fallback
-  return quote.dex || 'Unknown DEX';
+  return quote.dex || "Unknown DEX";
 }
 
 export default function SwapPage() {
-  const { address, connected, network, signAndSubmitTransaction, availableWallets, connectionStatus, activeWallet } = useMultiWallet()
-  const [fromToken, setFromToken] = useState<Token>(tokens[0])
-  const [toToken, setToToken] = useState<Token>(tokens[1])
-  const [fromAmount, setFromAmount] = useState("")
-  const [isSwapping, setIsSwapping] = useState(false)
-  const [user, setUser] = useState<AppUser | null>(null)
-  const [quotes, setQuotes] = useState<Quote[]>([])
-  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
-  const [showFromDropdown, setShowFromDropdown] = useState(false)
-  const [showToDropdown, setShowToDropdown] = useState(false)
-  const [activeSwapTab, setActiveSwapTab] = useState("swap")
-  const [swapMode, setSwapMode] = useState<"same-address" | "cross-address">("same-address")
-  const [receiverAddress, setReceiverAddress] = useState(RECEIVER_ADDRESS)
+  const {
+    address,
+    connected,
+    network,
+    signAndSubmitTransaction,
+    availableWallets,
+    connectionStatus,
+    activeWallet,
+  } = useMultiWallet();
+  const [fromToken, setFromToken] = useState<Token>(tokens[0]);
+  const [toToken, setToToken] = useState<Token>(tokens[1]);
+  const [fromAmount, setFromAmount] = useState("");
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const [showToDropdown, setShowToDropdown] = useState(false);
+  const [activeSwapTab, setActiveSwapTab] = useState("swap");
+  const [swapMode, setSwapMode] = useState<"same-address" | "cross-address">(
+    "same-address"
+  );
+  const [receiverAddress, setReceiverAddress] = useState(RECEIVER_ADDRESS);
 
   // NEW: State for balances
-  const [fromBalance, setFromBalance] = useState<string>("")
-  const [toBalance, setToBalance] = useState<string>("")
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  const [fromBalance, setFromBalance] = useState<string>("");
+  const [toBalance, setToBalance] = useState<string>("");
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   // 1. Thêm state lưu balances cho tất cả token
-  const [allTokenBalances, setAllTokenBalances] = useState<Record<string, string>>({})
+  const [allTokenBalances, setAllTokenBalances] = useState<
+    Record<string, string>
+  >({});
 
   // Thay thế allTokenBalances bằng balances từ hook mới
   const balances = useWalletBalances(tokens, address, connected);
 
-  const fromDropdownRef = useRef<HTMLDivElement>(null)
-  const toDropdownRef = useRef<HTMLDivElement>(null)
+  const fromDropdownRef = useRef<HTMLDivElement>(null);
+  const toDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (showFromDropdown && fromDropdownRef.current && !fromDropdownRef.current.contains(event.target as Node)) {
-        setShowFromDropdown(false)
+      if (
+        showFromDropdown &&
+        fromDropdownRef.current &&
+        !fromDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowFromDropdown(false);
       }
-      if (showToDropdown && toDropdownRef.current && !toDropdownRef.current.contains(event.target as Node)) {
-        setShowToDropdown(false)
+      if (
+        showToDropdown &&
+        toDropdownRef.current &&
+        !toDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowToDropdown(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [showFromDropdown, showToDropdown])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFromDropdown, showToDropdown]);
 
   // Debug logging for wallet connection
   useEffect(() => {
@@ -329,375 +403,741 @@ export default function SwapPage() {
       network,
       connectionStatus,
       activeWallet,
-      availableWallets: availableWallets.length
-    })
-  }, [connected, address, network, connectionStatus, activeWallet, availableWallets])
+      availableWallets: availableWallets.length,
+    });
+  }, [
+    connected,
+    address,
+    network,
+    connectionStatus,
+    activeWallet,
+    availableWallets,
+  ]);
 
   // Check for existing user session
   useEffect(() => {
-    const savedUser = localStorage.getItem("user")
+    const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(JSON.parse(savedUser))
+      setUser(JSON.parse(savedUser));
     }
-  }, [])
+  }, []);
 
   const handleLogout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-  }
+    setUser(null);
+    localStorage.removeItem("user");
+  };
 
   // Fetch quotes from the aggregator
   const fetchQuotes = async () => {
     if (!fromAmount) {
-      setQuotes([])
-      return
+      setQuotes([]);
+      return;
     }
     // Chuẩn hóa dấu phẩy thành dấu chấm
-    const cleanAmount = fromAmount.replace(',', '.')
-    const parsedAmount = Number.parseFloat(cleanAmount)
+    const cleanAmount = fromAmount.replace(",", ".");
+    const parsedAmount = Number.parseFloat(cleanAmount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setQuotes([])
-      return
+      setQuotes([]);
+      return;
     }
 
-    setIsLoadingQuotes(true)
+    setIsLoadingQuotes(true);
 
     try {
       // Convert amount to octas (smallest unit)
-      const amountInOctas = Math.floor(parsedAmount * Math.pow(10, fromToken.decimals))
+      const amountInOctas = Math.floor(
+        parsedAmount * Math.pow(10, fromToken.decimals)
+      );
       if (isNaN(amountInOctas) || amountInOctas <= 0) {
-        setQuotes([])
-        setIsLoadingQuotes(false)
-        return
+        setQuotes([]);
+        setIsLoadingQuotes(false);
+        return;
       }
       // Call the aggregator's simulate_swap function
+      console.log("🔄 Calling API with payload:", {
+        inputToken: fromToken.address,
+        outputToken: toToken.address,
+        inputAmount: amountInOctas.toString(),
+      });
+
       const response = await fetch(`/api/simulate-swap`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify({
           inputToken: fromToken.address,
           outputToken: toToken.address,
           inputAmount: amountInOctas.toString(),
         }),
-      })
+      });
+
+      console.log(
+        "📡 API Response status:",
+        response.status,
+        response.statusText
+      );
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data && data.quotes && Array.isArray(data.quotes)) {
-          console.log('🔍 DEBUG: Setting quotes from API:', data.quotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount })));
-          
-          // Force sort quotes theo outputAmount để đảm bảo thứ tự đúng
-          const sortedQuotes = data.quotes.sort((a, b) => 
-            Number.parseFloat(b.outputAmount) - Number.parseFloat(a.outputAmount)
+          console.log(
+            "🔍 DEBUG: Setting quotes from API:",
+            data.quotes.map((q: Quote) => ({
+              dex: q.dex,
+              outputAmount: q.outputAmount,
+            }))
           );
-          
-          console.log('🔍 DEBUG: Sorted quotes:', sortedQuotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount })));
-          setQuotes(sortedQuotes)
+
+          // Sử dụng bestQuote từ API thay vì tự tính toán
+          if (data.bestQuote) {
+            console.log(
+              "🏆 Best quote from API:",
+              data.bestQuote.dex,
+              "with output:",
+              data.bestQuote.outputAmount
+            );
+          }
+
+          // Force sort quotes theo outputAmount để đảm bảo thứ tự đúng
+          const sortedQuotes = data.quotes.sort(
+            (a: Quote, b: Quote) =>
+              Number.parseFloat(b.outputAmount) -
+              Number.parseFloat(a.outputAmount)
+          );
+
+          console.log(
+            "🔍 DEBUG: Sorted quotes:",
+            sortedQuotes.map((q: Quote) => ({
+              dex: q.dex,
+              outputAmount: q.outputAmount,
+            }))
+          );
+          setQuotes(sortedQuotes);
         } else {
-          setQuotes([])
+          setQuotes([]);
         }
       } else {
-        setQuotes([])
+        setQuotes([]);
       }
     } catch (error) {
-      console.error("Error fetching quotes:", error)
-      setQuotes([])
+      console.error("Error fetching quotes:", error);
+      setQuotes([]);
     } finally {
-      setIsLoadingQuotes(false)
+      setIsLoadingQuotes(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (fromAmount) {
-      const debounce = setTimeout(fetchQuotes, 800)
-      return () => clearTimeout(debounce)
+      const debounce = setTimeout(fetchQuotes, 800);
+      return () => clearTimeout(debounce);
     } else {
-      setQuotes([])
+      setQuotes([]);
     }
-  }, [fromAmount, fromToken, toToken])
+  }, [fromAmount, fromToken, toToken]);
 
   // NEW: Fetch balance for a given token and address
-  async function fetchTokenBalance(address: string, tokenAddress: string, decimals: number): Promise<string> {
+  async function fetchTokenBalance(
+    address: string,
+    tokenAddress: string,
+    decimals: number
+  ): Promise<string> {
     try {
       if (!address) {
-        console.log("No address provided for balance fetch")
-        return "0.00"
+        console.log("No address provided for balance fetch");
+        return "0.00";
       }
-      
-      console.log(`Fetching balance for token: ${tokenAddress} at address: ${address}`)
-      
+
+      console.log(
+        `Fetching balance for token: ${tokenAddress} at address: ${address}`
+      );
+
       // Use Aptos public node
-      const nodeUrl = process.env.NEXT_PUBLIC_APTOS_NODE_URL || "https://fullnode.mainnet.aptoslabs.com"
-      
+      const nodeUrl =
+        process.env.NEXT_PUBLIC_APTOS_NODE_URL ||
+        "https://fullnode.mainnet.aptoslabs.com";
+
       // Ensure nodeUrl doesn't end with /v1 to avoid double /v1/v1/
-      const baseUrl = nodeUrl.endsWith('/v1') ? nodeUrl.slice(0, -3) : nodeUrl
-      
+      const baseUrl = nodeUrl.endsWith("/v1") ? nodeUrl.slice(0, -3) : nodeUrl;
+
       // Get all resources for the account
-      const res = await fetch(`${baseUrl}/v1/accounts/${address}/resources`)
+      const res = await fetch(`${baseUrl}/v1/accounts/${address}/resources`);
       if (!res.ok) {
-        console.log(`Failed to fetch resources for ${address}: ${res.status}`)
-        return "0.00"
+        console.log(`Failed to fetch resources for ${address}: ${res.status}`);
+        return "0.00";
       }
-      
-      const resources = await res.json()
+
+      const resources = await res.json();
       // Thêm log toàn bộ resource để debug
-      console.log("All resources for address", address, resources)
-      
+      console.log("All resources for address", address, resources);
+
       // Find CoinStore for the token
       const coinStore = resources.find((r: any) => {
-        const isMatch = r.type === `0x1::coin::CoinStore<${tokenAddress}>`
+        const isMatch = r.type === `0x1::coin::CoinStore<${tokenAddress}>`;
         if (isMatch) {
-          console.log(`Found exact CoinStore for ${tokenAddress}:`, r.data)
+          console.log(`Found exact CoinStore for ${tokenAddress}:`, r.data);
         }
-        return isMatch
-      })
-      
-      if (coinStore && coinStore.data && coinStore.data.coin && coinStore.data.coin.value) {
-        const balance = (Number(coinStore.data.coin.value) / Math.pow(10, decimals)).toFixed(6)
-        console.log(`Balance for ${tokenAddress}: ${balance}`)
-        return balance
+        return isMatch;
+      });
+
+      if (
+        coinStore &&
+        coinStore.data &&
+        coinStore.data.coin &&
+        coinStore.data.coin.value
+      ) {
+        const balance = (
+          Number(coinStore.data.coin.value) / Math.pow(10, decimals)
+        ).toFixed(6);
+        console.log(`Balance for ${tokenAddress}: ${balance}`);
+        return balance;
       }
-      
-      console.log(`No CoinStore found for ${tokenAddress}`)
-      return "0.000000"
+
+      console.log(`No CoinStore found for ${tokenAddress}`);
+      return "0.000000";
     } catch (e) {
-      console.error(`Error fetching balance for ${tokenAddress}:`, e)
-      return "0.00"
+      console.error(`Error fetching balance for ${tokenAddress}:`, e);
+      return "0.00";
     }
   }
 
   // 2. Fetch balance cho tất cả token khi ví kết nối hoặc address thay đổi
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     async function fetchAllBalances() {
       if (connected && address) {
-        const balances: Record<string, string> = {}
+        const balances: Record<string, string> = {};
         for (const token of tokens) {
-          balances[token.symbol] = await fetchTokenBalance(address, token.address, token.decimals)
+          balances[token.symbol] = await fetchTokenBalance(
+            address,
+            token.address,
+            token.decimals
+          );
         }
-        if (!cancelled) setAllTokenBalances(balances)
+        if (!cancelled) setAllTokenBalances(balances);
       } else {
-        setAllTokenBalances({})
+        setAllTokenBalances({});
       }
     }
-    fetchAllBalances()
-    return () => { cancelled = true }
-  }, [connected, address])
+    fetchAllBalances();
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, address]);
+
+  // Function to update balances
+  async function updateBalances() {
+    console.log(
+      `Balance update triggered - Connected: ${connected}, Address: ${address}`
+    );
+
+    if (connected && address) {
+      setIsLoadingBalance(true);
+      console.log(
+        `Fetching balances for tokens: ${fromToken.symbol} and ${toToken.symbol}`
+      );
+
+      try {
+        const [from, to] = await Promise.all([
+          fetchTokenBalance(address, fromToken.address, fromToken.decimals),
+          fetchTokenBalance(address, toToken.address, toToken.decimals),
+        ]);
+
+        console.log(`Setting balances - From: ${from}, To: ${to}`);
+        setFromBalance(from);
+        setToBalance(to);
+        setIsLoadingBalance(false);
+      } catch (error) {
+        console.error("Error updating balances:", error);
+        setFromBalance("0.00");
+        setToBalance("0.00");
+        setIsLoadingBalance(false);
+      }
+    } else {
+      console.log("Wallet not connected, clearing balances");
+      setFromBalance("");
+      setToBalance("");
+      setIsLoadingBalance(false);
+    }
+  }
 
   // NEW: Effect to fetch balances when wallet or token changes
   useEffect(() => {
-    let cancelled = false
-    async function updateBalances() {
-      console.log(`Balance update triggered - Connected: ${connected}, Address: ${address}`)
-      
-      if (connected && address) {
-        setIsLoadingBalance(true)
-        console.log(`Fetching balances for tokens: ${fromToken.symbol} and ${toToken.symbol}`)
-        
-        try {
-          const [from, to] = await Promise.all([
-            fetchTokenBalance(address, fromToken.address, fromToken.decimals),
-            fetchTokenBalance(address, toToken.address, toToken.decimals),
-          ])
-          
-          if (!cancelled) {
-            console.log(`Setting balances - From: ${from}, To: ${to}`)
-            setFromBalance(from)
-            setToBalance(to)
-            setIsLoadingBalance(false)
-          }
-        } catch (error) {
-          console.error("Error updating balances:", error)
-          if (!cancelled) {
-            setFromBalance("0.00")
-            setToBalance("0.00")
-            setIsLoadingBalance(false)
-          }
-        }
-      } else {
-        console.log("Wallet not connected, clearing balances")
-        setFromBalance("")
-        setToBalance("")
-        setIsLoadingBalance(false)
+    let cancelled = false;
+
+    const updateBalancesWithCancel = async () => {
+      if (!cancelled) {
+        await updateBalances();
       }
-    }
-    
-    updateBalances()
-    return () => { cancelled = true }
-  }, [connected, address, fromToken, toToken])
+    };
+
+    updateBalancesWithCancel();
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, address, fromToken, toToken]);
 
   const swapTokens = () => {
-    const temp = fromToken
-    setFromToken(toToken)
-    setToToken(temp)
-  }
+    const temp = fromToken;
+    setFromToken(toToken);
+    setToToken(temp);
+  };
 
-  const executeSwap = async () => {
+  // Thêm hàm thực hiện swap trên DEX cụ thể
+  const executeSwapOnDex = async (quote: Quote) => {
     if (!connected || !address) {
-      alert("Please connect your Petra wallet first!")
-      return
+      alert("Please connect your wallet first!");
+      return;
     }
-    // Kiểm tra bestQuote
-    if (!bestQuote || Number.parseFloat(bestQuote.outputAmount) <= 0) {
-      alert("Không có báo giá khả dụng hoặc output bằng 0. Vui lòng thử lại hoặc chọn cặp token khác.")
-      return
+
+    if (!quote || Number.parseFloat(quote.outputAmount) <= 0) {
+      alert("Invalid quote for this DEX. Please try again.");
+      return;
     }
+
     // Kiểm tra số dư
-    const fromBalanceNum = Number(fromBalance)
-    const fromAmountNum = Number(fromAmount)
-    if (!isNaN(fromBalanceNum) && !isNaN(fromAmountNum) && fromBalanceNum < fromAmountNum) {
-      alert("Số dư không đủ để thực hiện swap!")
-      return
+    const fromBalanceNum = Number(fromBalance);
+    const fromAmountNum = Number(fromAmount);
+    if (
+      !isNaN(fromBalanceNum) &&
+      !isNaN(fromAmountNum) &&
+      fromBalanceNum < fromAmountNum
+    ) {
+      alert("Insufficient balance for swap!");
+      return;
     }
-    setIsSwapping(true)
+
+    // Kiểm tra gas fee (APT balance)
+    const aptBalance = balances["APT"] || "0";
+    const aptBalanceNum = Number(aptBalance);
+    if (aptBalanceNum < 0.01) {
+      // Cần ít nhất 0.01 APT cho gas
+      alert("Số dư APT không đủ để trả gas fee! Cần ít nhất 0.01 APT.");
+      return;
+    }
+
+    setIsSwapping(true);
     try {
       // Convert amount to octas
-      const amountInOctas = Math.floor(Number.parseFloat(fromAmount) * Math.pow(10, fromToken.decimals))
-      const minOutputAmount = Math.floor(Number.parseFloat(bestQuote?.outputAmount || "0") * Math.pow(10, toToken.decimals) * 0.95) // 5% slippage
-      const deadline = Math.floor(Date.now() / 1000) + 1200 // 20 minutes from now
-      let transactionPayload
-      let typeArgs = [fromToken.address, toToken.address]
-      let args
-      if (swapMode === "cross-address") {
-        args = [receiverAddress, amountInOctas.toString(), minOutputAmount.toString(), deadline.toString()]
+      const amountInOctas = Math.floor(
+        Number.parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)
+      );
+      const minOutputAmount = Math.floor(
+        Number.parseFloat(quote.outputAmount) *
+          Math.pow(10, toToken.decimals) *
+          0.95
+      ); // 5% slippage
+      const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 minutes from now
+
+      let transactionPayload;
+      let typeArgs = [fromToken.address, toToken.address];
+      // Nếu là PancakeSwap, route trực tiếp tới entry function của PancakeSwap
+      if (quote.dex === "PancakeSwap") {
+        if (!quote.pool_address)
+          throw new Error("Missing pool_address for PancakeSwap");
         transactionPayload = {
           type: "entry_function_payload",
-          function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator::swap_cross_address_v2`,
+          function:
+            "0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa::swap::swap_exact_in",
+          type_arguments: typeArgs,
+          arguments: [
+            quote.pool_address,
+            amountInOctas.toString(),
+            minOutputAmount.toString(),
+          ],
+        };
+        console.log(
+          "[DEBUG SWAP] Routing direct PancakeSwap swap",
+          transactionPayload
+        );
+      } else {
+        // Các DEX khác giữ nguyên logic aggregator
+        let args = [
+          amountInOctas.toString(),
+          minOutputAmount.toString(),
+          deadline.toString(),
+        ];
+        const dexNeedPoolAddress = ["Liquidswap", "AnimeSwap", "SushiSwap"];
+        if (quote.pool_address && dexNeedPoolAddress.includes(quote.dex)) {
+          args.push(quote.pool_address);
+        }
+        transactionPayload = {
+          type: "entry_function_payload",
+          function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator_v4::swap_exact_input`,
           type_arguments: typeArgs,
           arguments: args,
+        };
+        console.log(
+          `[DEBUG SWAP] Executing on ${quote.dex} with swap_exact_input`
+        );
+        console.log(`[DEBUG SWAP] Payload:`, transactionPayload);
+      }
+
+      // Log chi tiết để debug trước khi gửi transaction
+      console.log("[DEBUG SWAP] Payload:", transactionPayload);
+      console.log("[DEBUG SWAP] type_arguments:", typeArgs);
+      // Không còn biến args, chỉ log arguments từ transactionPayload
+      console.log("[DEBUG SWAP] arguments:", transactionPayload.arguments);
+      if (quote.pool_address) {
+        console.log("[DEBUG SWAP] pool_address:", quote.pool_address);
+      }
+
+      // Sign and submit transaction
+      const result = await signAndSubmitTransaction(transactionPayload);
+      console.log("Transaction result:", result);
+      alert(`Swap completed successfully on ${quote.dex}!`);
+      setFromAmount("");
+      setQuotes([]);
+      // Refresh balances
+      updateBalances();
+    } catch (error) {
+      console.error("Swap failed:", error);
+
+      // Hiển thị lỗi chi tiết hơn
+      let errorMessage = `Swap failed on ${quote.dex}. `;
+      if (error instanceof Error) {
+        errorMessage += error.message;
+        if (error.message.includes("Simulation error")) {
+          errorMessage +=
+            "\n\nCó thể do:\n- Số dư không đủ\n- Gas fee không đủ\n- Token không được hỗ trợ\n- Smart contract lỗi";
         }
       } else {
-        args = [amountInOctas.toString(), minOutputAmount.toString(), deadline.toString()]
+        errorMessage += error?.toString() || "Unknown error";
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  // Khi user chọn DEX, luôn ưu tiên bestQuote là Liquidswap nếu có
+  const getBestQuoteByDex = (dexName: string) => {
+    if (!quotes || quotes.length === 0) return null;
+    return quotes.find((q) => q.dex === dexName) || null;
+  };
+
+  // Sửa lại executeSwap để luôn lấy bestQuote là Liquidswap nếu có quote Liquidswap, không cần kiểm tra selectedDex
+  const executeSwap = async () => {
+    if (!connected || !address) {
+      alert("Please connect your Petra wallet first!");
+      return;
+    }
+    // Ưu tiên bestQuote là Liquidswap nếu có quote Liquidswap
+    let quoteToUse = bestQuote;
+    const liquidswapQuote = getBestQuoteByDex("Liquidswap");
+    if (liquidswapQuote) quoteToUse = liquidswapQuote;
+    // Kiểm tra bestQuote
+    if (!quoteToUse || Number.parseFloat(quoteToUse.outputAmount) <= 0) {
+      alert(
+        "Không có báo giá khả dụng hoặc output bằng 0. Vui lòng thử lại hoặc chọn cặp token khác."
+      );
+      return;
+    }
+    // Log rõ bestQuote khi swap
+    console.log("[DEBUG SWAP] Chọn quote để swap:", quoteToUse);
+    // Kiểm tra số dư
+    const fromBalanceNum = Number(fromBalance);
+    const fromAmountNum = Number(fromAmount);
+    if (
+      !isNaN(fromBalanceNum) &&
+      !isNaN(fromAmountNum) &&
+      fromBalanceNum < fromAmountNum
+    ) {
+      alert("Số dư không đủ để thực hiện swap!");
+      return;
+    }
+
+    // Kiểm tra gas fee (APT balance)
+    const aptBalance = balances["APT"] || "0";
+    const aptBalanceNum = Number(aptBalance);
+    if (aptBalanceNum < 0.01) {
+      // Cần ít nhất 0.01 APT cho gas
+      alert("Số dư APT không đủ để trả gas fee! Cần ít nhất 0.01 APT.");
+      return;
+    }
+    setIsSwapping(true);
+    try {
+      // Convert amount to octas
+      const amountInOctas = Math.floor(
+        Number.parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)
+      );
+      const minOutputAmount = Math.floor(
+        Number.parseFloat(quoteToUse?.outputAmount || "0") *
+          Math.pow(10, toToken.decimals) *
+          0.95
+      ); // 5% slippage
+      const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 minutes from now
+      let transactionPayload;
+      let typeArgs = [fromToken.address, toToken.address];
+      let args;
+      // Log chi tiết các biến đầu vào cho swap
+      console.log("[DEBUG SWAP] fromToken:", fromToken);
+      console.log("[DEBUG SWAP] toToken:", toToken);
+      console.log("[DEBUG SWAP] fromAmount (UI):", fromAmount);
+      console.log("[DEBUG SWAP] fromToken.decimals:", fromToken.decimals);
+      console.log("[DEBUG SWAP] toToken.decimals:", toToken.decimals);
+      console.log("[DEBUG SWAP] amountInOctas:", amountInOctas);
+      console.log("[DEBUG SWAP] minOutputAmount:", minOutputAmount);
+      console.log("[DEBUG SWAP] deadline:", deadline);
+      if (swapMode === "cross-address") {
+        args = [
+          receiverAddress,
+          amountInOctas.toString(),
+          minOutputAmount.toString(),
+          deadline.toString(),
+        ];
         transactionPayload = {
           type: "entry_function_payload",
-          function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator::swap_exact_input`,
+          function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator_v4::swap_cross_address_v2`,
           type_arguments: typeArgs,
           arguments: args,
+        };
+        console.log("[DEBUG SWAP] swapMode cross-address, args:", args);
+      } else if (quoteToUse.dex === "PancakeSwap") {
+        if (!quoteToUse.pool_address)
+          throw new Error("Missing pool_address for PancakeSwap");
+        transactionPayload = {
+          type: "entry_function_payload",
+          function:
+            "0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa::swap::swap_exact_in",
+          type_arguments: typeArgs,
+          arguments: [
+            quoteToUse.pool_address,
+            amountInOctas.toString(),
+            minOutputAmount.toString(),
+          ],
+        };
+        console.log("[DEBUG SWAP] Routing direct PancakeSwap swap");
+        console.log("[DEBUG SWAP] pool_address:", quoteToUse.pool_address);
+        console.log("[DEBUG SWAP] arguments:", transactionPayload.arguments);
+      } else {
+        // Các DEX khác giữ nguyên logic aggregator
+        args = [
+          amountInOctas.toString(),
+          minOutputAmount.toString(),
+          deadline.toString(),
+        ];
+        const dexNeedPoolAddress = ["Liquidswap", "AnimeSwap", "SushiSwap"];
+        if (
+          quoteToUse.pool_address &&
+          dexNeedPoolAddress.includes(quoteToUse.dex)
+        ) {
+          args.push(quoteToUse.pool_address);
+          console.log(
+            "[DEBUG SWAP] Thêm pool_address vào args:",
+            quoteToUse.pool_address
+          );
         }
+        transactionPayload = {
+          type: "entry_function_payload",
+          function: `${AGGREGATOR_ADDRESS}::multiswap_aggregator_v4::swap_exact_input`,
+          type_arguments: typeArgs,
+          arguments: args,
+        };
+        console.log(
+          `[DEBUG SWAP] Executing on ${quoteToUse.dex} with swap_exact_input`
+        );
+        console.log("[DEBUG SWAP] arguments:", args);
       }
-      // Log chi tiết để debug
-      console.log("[DEBUG SWAP] Payload:", transactionPayload)
-      console.log("[DEBUG SWAP] bestQuote:", bestQuote)
-      console.log("[DEBUG SWAP] fromAmount:", fromAmount, "fromToken:", fromToken, "toToken:", toToken)
-      console.log("[DEBUG SWAP] type_arguments:", typeArgs, "arguments:", args)
+      // Log cuối cùng trước khi gửi transaction
+      console.log("[DEBUG SWAP] FINAL transactionPayload:", transactionPayload);
+      console.log(
+        "[DEBUG SWAP] FINAL type_arguments:",
+        transactionPayload.type_arguments
+      );
+      console.log(
+        "[DEBUG SWAP] FINAL arguments:",
+        transactionPayload.arguments
+      );
       // Kiểm tra bất thường
-      if (!Array.isArray(typeArgs) || typeArgs.length !== 2 || !typeArgs[0] || !typeArgs[1]) {
-        alert("Type arguments truyền lên contract không hợp lệ!")
-        setIsSwapping(false)
-        return
+      if (
+        !Array.isArray(typeArgs) ||
+        typeArgs.length !== 2 ||
+        !typeArgs[0] ||
+        !typeArgs[1]
+      ) {
+        alert("Type arguments truyền lên contract không hợp lệ!");
+        setIsSwapping(false);
+        return;
       }
       if (!Array.isArray(args) || args.length < 3) {
-        alert("Arguments truyền lên contract không hợp lệ!")
-        setIsSwapping(false)
-        return
+        alert("Arguments truyền lên contract không hợp lệ!");
+        setIsSwapping(false);
+        return;
       }
-      if (Number.parseFloat(bestQuote.outputAmount) <= 0) {
-        alert("Output amount <= 0. Không thể swap!")
-        setIsSwapping(false)
-        return
+      if (Number.parseFloat(quoteToUse.outputAmount) <= 0) {
+        alert("Output amount <= 0. Không thể swap!");
+        setIsSwapping(false);
+        return;
       }
       // Sign and submit transaction
-      const result = await signAndSubmitTransaction(transactionPayload)
-      console.log("Transaction result:", result)
-      alert("Swap completed successfully!")
-      setFromAmount("")
-      setQuotes([])
+      const result = await signAndSubmitTransaction(transactionPayload);
+      console.log("Transaction result:", result);
+      alert("Swap completed successfully!");
+      setFromAmount("");
+      setQuotes([]);
     } catch (error) {
-      console.error("Swap failed:", error)
-      alert("Swap failed. Lỗi chi tiết: " + String(error))
-    } finally {
-      setIsSwapping(false)
-    }
-  }
+      console.error("Swap failed:", error);
 
-  // Tính toán bestQuote từ quotes array - đảm bảo chọn DEX có output cao nhất
-  const bestQuote = quotes.length > 0
-    ? quotes.reduce((best, current) => {
-        const currentOutput = Number.parseFloat(current.outputAmount);
-        const bestOutput = Number.parseFloat(best.outputAmount);
-        console.log(`🔍 DEBUG: Comparing ${current.dex}(${currentOutput}) vs ${best.dex}(${bestOutput})`);
-        if (currentOutput > bestOutput) {
-          console.log(`✅ ${current.dex} is better than ${best.dex}`);
-          return current;
-        } else {
-          console.log(`❌ ${current.dex} is not better than ${best.dex}`);
-          return best;
+      // Hiển thị lỗi chi tiết hơn
+      let errorMessage = "Swap failed. ";
+      if (error instanceof Error) {
+        errorMessage += error.message;
+        if (error.message.includes("Simulation error")) {
+          errorMessage +=
+            "\n\nCó thể do:\n- Số dư không đủ\n- Gas fee không đủ\n- Token không được hỗ trợ\n- Smart contract lỗi";
         }
-      })
-    : null;
-    
-  // Debug log để kiểm tra bestQuote
-  if (bestQuote) {
-    console.log('🔍 DEBUG: Best quote found:', {
-      dex: bestQuote.dex,
-      outputAmount: bestQuote.outputAmount,
-      allQuotes: quotes.map(q => ({ dex: q.dex, outputAmount: q.outputAmount }))
-    });
-    
-    // Kiểm tra xem bestQuote có thực sự là cao nhất không
-    const maxOutput = Math.max(...quotes.map(q => Number.parseFloat(q.outputAmount)));
-    const maxDex = quotes.find(q => Number.parseFloat(q.outputAmount) === maxOutput);
-    console.log('🔍 DEBUG: Verification - Max output:', maxOutput, 'Max DEX:', maxDex?.dex);
-    
-    if (Number.parseFloat(bestQuote.outputAmount) !== maxOutput) {
-      console.error('❌ ERROR: Best quote is not the highest!');
-    } else {
-      console.log('✅ SUCCESS: Best quote is correct!');
+      } else {
+        errorMessage += error?.toString() || "Unknown error";
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsSwapping(false);
     }
-  }
-  
-  // Debug log để kiểm tra tất cả quotes và sắp xếp
-  console.log('🔍 DEBUG: All quotes sorted by outputAmount:', 
-    quotes.map(q => ({ dex: q.dex, outputAmount: parseFloat(q.outputAmount) }))
-      .sort((a, b) => b.outputAmount - a.outputAmount)
+  };
+
+  // Sắp xếp quotes theo outputAmount giảm dần (lợi nhất lên trên) và chỉ hiển thị 6 DEX:
+  // Chỉ giữ lại các DEX swap được và có pool trong smart contract
+  const SUPPORTED_DEXS = [
+    "Liquidswap",
+    "Econia",
+    "Panora",
+    "Amnis",
+    "AnimeSwap",
+    "SushiSwap",
+    "PancakeSwap",
+  ];
+  const sortedQuotes = quotes
+    .slice()
+    .filter((q) => {
+      const output = parseFloat(q.outputAmount);
+      // Loại bỏ Aggregator và các DEX không hỗ trợ
+      return !isNaN(output) && output > 0 && SUPPORTED_DEXS.includes(q.dex);
+    })
+    .sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount))
+    .slice(0, 6); // Chỉ hiển thị 6 DEX đầu tiên
+
+  // Tính toán bestQuote từ sortedQuotes (chỉ các DEX hiển thị trong bảng)
+  const bestQuote = sortedQuotes.length > 0 ? sortedQuotes[0] : null;
+
+  // Debug log để kiểm tra sortedQuotes
+  console.log(
+    "🔍 DEBUG: sortedQuotes after filtering and sorting:",
+    sortedQuotes.map((q) => ({ dex: q.dex, outputAmount: q.outputAmount }))
   );
 
-  // Sắp xếp quotes theo outputAmount giảm dần (lợi nhất lên trên):
-  const sortedQuotes = quotes.slice().sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount));
+  // Reset tất cả isBest về false trước
+  quotes.forEach((quote) => {
+    quote.isBest = false;
+  });
+
+  // Gắn badge "Best" cho quote có output cao nhất trong bảng Compare DEX Quotes
+  if (bestQuote) {
+    const bestQuoteInOriginal = quotes.find((q) => q.dex === bestQuote.dex);
+    if (bestQuoteInOriginal) {
+      bestQuoteInOriginal.isBest = true;
+    }
+  }
+
+  // Debug log để kiểm tra bestQuote
+  if (bestQuote) {
+    console.log("🔍 DEBUG: Best quote found:", {
+      dex: bestQuote.dex,
+      outputAmount: bestQuote.outputAmount,
+      allQuotes: quotes.map((q) => ({
+        dex: q.dex,
+        outputAmount: q.outputAmount,
+      })),
+    });
+
+    // Kiểm tra xem bestQuote có thực sự là cao nhất không
+    const validQuotes = quotes.filter((q) => {
+      const output = Number.parseFloat(q.outputAmount);
+      return !isNaN(output) && output > 0;
+    });
+
+    if (validQuotes.length > 0) {
+      const maxOutput = Math.max(
+        ...validQuotes.map((q) => Number.parseFloat(q.outputAmount))
+      );
+      const maxDex = validQuotes.find(
+        (q) => Number.parseFloat(q.outputAmount) === maxOutput
+      );
+      console.log(
+        "🔍 DEBUG: Verification - Max output:",
+        maxOutput,
+        "Max DEX:",
+        maxDex?.dex
+      );
+
+      if (Number.parseFloat(bestQuote.outputAmount) !== maxOutput) {
+        console.error("❌ ERROR: Best quote is not the highest!");
+      } else {
+        console.log("✅ SUCCESS: Best quote is correct!");
+      }
+    } else {
+      console.log("⚠️ WARNING: No valid quotes found");
+    }
+  }
+
+  // Debug log để kiểm tra tất cả quotes và sắp xếp
+  const validQuotesForDebug = quotes
+    .map((q: Quote) => ({
+      dex: q.dex,
+      outputAmount: parseFloat(q.outputAmount),
+    }))
+    .filter((q) => !isNaN(q.outputAmount) && q.outputAmount > 0)
+    .sort((a: any, b: any) => b.outputAmount - a.outputAmount);
+
+  console.log(
+    "🔍 DEBUG: All quotes sorted by outputAmount:",
+    validQuotesForDebug
+  );
 
   // Thêm state cho timer
-  const REFRESH_INTERVAL = 30 // giây
+  const REFRESH_INTERVAL = 30; // giây
   // Thay thế state timer:
-  const REFRESH_INTERVAL_MS = REFRESH_INTERVAL * 1000
-  const [refreshTimerMs, setRefreshTimerMs] = useState(REFRESH_INTERVAL_MS)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const REFRESH_INTERVAL_MS = REFRESH_INTERVAL * 1000;
+  const [refreshTimerMs, setRefreshTimerMs] = useState(REFRESH_INTERVAL_MS);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset timer khi input thay đổi
   useEffect(() => {
-    setRefreshTimerMs(REFRESH_INTERVAL_MS)
-  }, [fromAmount, fromToken, toToken])
+    setRefreshTimerMs(REFRESH_INTERVAL_MS);
+  }, [fromAmount, fromToken, toToken]);
 
   // Thay đổi useEffect cho timer:
   useEffect(() => {
     if (isLoadingQuotes) {
-      setRefreshTimerMs(REFRESH_INTERVAL_MS)
-      if (timerRef.current) clearInterval(timerRef.current)
-      return
+      setRefreshTimerMs(REFRESH_INTERVAL_MS);
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
     }
-    if (!fromAmount || isLoadingQuotes) return
+    if (!fromAmount || isLoadingQuotes) return;
     timerRef.current = setInterval(() => {
       setRefreshTimerMs((prev) => {
         if (prev <= 50) {
-          clearInterval(timerRef.current!)
-          fetchQuotes()
-          return REFRESH_INTERVAL_MS
+          clearInterval(timerRef.current!);
+          fetchQuotes();
+          return REFRESH_INTERVAL_MS;
         }
-        return prev - 50
-      })
-    }, 50)
+        return prev - 50;
+      });
+    }, 50);
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [fromAmount, fromToken, toToken, isLoadingQuotes])
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fromAmount, fromToken, toToken, isLoadingQuotes]);
 
-  const marketData = useMarketOverview()
-  
+  const marketData = useMarketOverview();
+
   // Add real-time price display component
-  const [realPrice, setRealPrice] = useState<string>("-")
-  
+  const [realPrice, setRealPrice] = useState<string>("-");
+
   // Thêm hàm fetchRealPoolPrice để lấy giá từ pool thực tế
   async function fetchRealPoolPrice(
     fromToken: Token,
@@ -705,10 +1145,7 @@ export default function SwapPage() {
     setRealPrice: Dispatch<SetStateAction<string>>
   ) {
     // Chỉ lấy giá cho cặp APT/USDC từ PancakeSwap pool, bạn có thể mở rộng cho các cặp khác nếu cần
-    if (
-      fromToken.symbol === "APT" &&
-      toToken.symbol === "USDC"
-    ) {
+    if (fromToken.symbol === "APT" && toToken.symbol === "USDC") {
       try {
         const poolRes = await fetch(
           "https://fullnode.mainnet.aptoslabs.com/v1/accounts/0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa/resources"
@@ -772,9 +1209,16 @@ export default function SwapPage() {
         <nav className="swap-nav px-4 py-3">
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-6">
-              <Link href="/" className="flex items-center text-gray-300 hover:text-yellow-400 transition-colors">
+              <Link
+                href="/"
+                className="flex items-center text-gray-300 hover:text-yellow-400 transition-colors"
+              >
                 <ArrowLeft className="w-5 h-5 mr-2" />
-                <img src="/dexonic-logo-yellow-500.svg" alt="Dexonic" className="w-8 h-8 mr-2" />
+                <img
+                  src="/dexonic-logo-yellow-500.svg"
+                  alt="Dexonic"
+                  className="w-8 h-8 mr-2"
+                />
                 <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
                   Dexonic Dex Aggregator
                 </span>
@@ -782,7 +1226,9 @@ export default function SwapPage() {
 
               {/* Navigation Links */}
               <div className="hidden md:flex items-center space-x-6">
-                <button className="swap-nav-link active text-yellow-400 font-semibold pb-1">Swap</button>
+                <button className="swap-nav-link active text-yellow-400 font-semibold pb-1">
+                  Swap
+                </button>
                 <button className="swap-nav-link">Limit</button>
                 <button className="swap-nav-link">DCA</button>
                 <button className="swap-nav-link">Cross-chain</button>
@@ -794,7 +1240,11 @@ export default function SwapPage() {
               {/* Network Selector */}
               <div className="network-selector flex items-center space-x-2 rounded-lg px-4 py-2 h-12 min-h-[48px] bg-[#181c23] border border-gray-600">
                 <div className="w-6 h-6 flex items-center justify-center rounded-full bg-yellow-400">
-                  <img src="/aptos-logo.svg" alt="Aptos" className="w-5 h-5 object-contain" />
+                  <img
+                    src="/aptos-logo.svg"
+                    alt="Aptos"
+                    className="w-5 h-5 object-contain"
+                  />
                 </div>
                 <span className="text-white text-sm">Aptos Mainnet</span>
                 <ChevronDown className="w-4 h-4 text-white" />
@@ -822,7 +1272,7 @@ export default function SwapPage() {
                   <AdminInitializer />
                 </div>
               )}
-              
+
               <Card className="settings-panel mb-4">
                 <CardContent className="p-4">
                   <h3 className="text-white font-semibold mb-3 flex items-center">
@@ -836,7 +1286,9 @@ export default function SwapPage() {
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                         <span className="text-sm font-medium text-white">
-                          {activeWallet === 'pontem' ? 'Pontem Wallet Connected' : 'Petra Wallet Connected'}
+                          {activeWallet === "pontem"
+                            ? "Pontem Wallet Connected"
+                            : "Petra Wallet Connected"}
                         </span>
                       </div>
                       <div className="w-full flex justify-center">
@@ -849,7 +1301,9 @@ export default function SwapPage() {
 
                   {/* Slippage Tolerance */}
                   <div className="mb-4">
-                    <label className="text-sm text-gray-300 mb-2 block">Slippage Tolerance</label>
+                    <label className="text-sm text-gray-300 mb-2 block">
+                      Slippage Tolerance
+                    </label>
                     <div className="flex space-x-2">
                       {["0.1%", "0.5%", "1%"].map((slippage) => (
                         <button
@@ -869,7 +1323,9 @@ export default function SwapPage() {
 
                   {/* Transaction Deadline */}
                   <div className="mb-4">
-                    <label className="text-sm text-gray-300 mb-2 block">Transaction Deadline</label>
+                    <label className="text-sm text-gray-300 mb-2 block">
+                      Transaction Deadline
+                    </label>
                     <div className="flex items-center space-x-2">
                       <input
                         type="number"
@@ -882,7 +1338,9 @@ export default function SwapPage() {
 
                   {/* MEV Protection */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">MEV Protection</span>
+                    <span className="text-sm text-gray-300">
+                      MEV Protection
+                    </span>
                     <button className="mev-toggle w-10 h-6 rounded-full relative">
                       <div className="w-4 h-4 bg-black rounded-full absolute right-1 top-1"></div>
                     </button>
@@ -893,13 +1351,20 @@ export default function SwapPage() {
               {/* Recent Transactions */}
               <Card className="swap-card">
                 <CardContent className="p-4">
-                  <h3 className="text-white font-semibold mb-3">Recent Transactions</h3>
+                  <h3 className="text-white font-semibold mb-3">
+                    Recent Transactions
+                  </h3>
                   <div className="space-y-2">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="transaction-item flex items-center justify-between p-2 rounded">
+                      <div
+                        key={i}
+                        className="transaction-item flex items-center justify-between p-2 rounded"
+                      >
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                          <span className="text-sm text-gray-300">APT → USDC</span>
+                          <span className="text-sm text-gray-300">
+                            APT → USDC
+                          </span>
                         </div>
                         <span className="text-xs text-gray-400">2m ago</span>
                       </div>
@@ -922,7 +1387,11 @@ export default function SwapPage() {
                         <RefreshCw className="w-4 h-4" />
                       </button>
                       <button className="swap-button-secondary p-2 rounded-lg">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path
                             fillRule="evenodd"
                             d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
@@ -939,9 +1408,13 @@ export default function SwapPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <TrendingUp className="w-4 h-4 text-yellow-400" />
-                          <span className="text-sm text-gray-300">Real-time APT/USDC Price:</span>
+                          <span className="text-sm text-gray-300">
+                            Real-time APT/USDC Price:
+                          </span>
                         </div>
-                        <span className="text-lg font-bold text-yellow-400">{realPrice}</span>
+                        <span className="text-lg font-bold text-yellow-400">
+                          {realPrice}
+                        </span>
                       </div>
                       <div className="text-xs text-gray-400 mt-1">
                         From PancakeSwap Pool • Updates every 30s
@@ -951,18 +1424,28 @@ export default function SwapPage() {
 
                   {/* Swap Mode Selector */}
                   <div className="flex flex-col w-full max-w-md mb-4">
-                    <span className="text-sm text-gray-300 mb-2 text-left">Swap Mode:</span>
+                    <span className="text-sm text-gray-300 mb-2 text-left">
+                      Swap Mode:
+                    </span>
                     <div className="swap-mode-selector flex justify-center items-center gap-0 bg-[#23272f] rounded-xl p-1 w-full">
                       <button
                         onClick={() => setSwapMode("same-address")}
-                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${swapMode === "same-address" ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg" : "text-gray-300"}`}
+                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${
+                          swapMode === "same-address"
+                            ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg"
+                            : "text-gray-300"
+                        }`}
                       >
                         <User className="w-5 h-5 mr-2" />
                         Same Address
                       </button>
                       <button
                         onClick={() => setSwapMode("cross-address")}
-                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${swapMode === "cross-address" ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg" : "text-gray-300"}`}
+                        className={`swap-mode-button w-1/2 flex-1 py-3 rounded-xl text-base font-semibold flex items-center justify-center transition-colors duration-150 ${
+                          swapMode === "cross-address"
+                            ? "active bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg"
+                            : "text-gray-300"
+                        }`}
                       >
                         <Users className="w-5 h-5 mr-2" />
                         Cross Address
@@ -973,20 +1456,43 @@ export default function SwapPage() {
                   {/* Receiver Address Input (for cross-address mode) */}
                   {swapMode === "cross-address" && (
                     <div className="mb-4">
-                      <label className="text-sm font-medium text-gray-300 mb-2 block">Receiver Address</label>
+                      <label className="text-sm font-medium text-gray-300 mb-2 block">
+                        Receiver Address
+                      </label>
                       <Input
                         type="text"
-                        value={receiverAddress === RECEIVER_ADDRESS ? "" : receiverAddress}
+                        value={
+                          receiverAddress === RECEIVER_ADDRESS
+                            ? ""
+                            : receiverAddress
+                        }
                         onChange={(e) => setReceiverAddress(e.target.value)}
-                        placeholder={!connected ? "Enter Receiver Address First" : "Add Receiver Address"}
+                        placeholder={
+                          !connected
+                            ? "Enter Receiver Address First"
+                            : "Add Receiver Address"
+                        }
                         className="swap-input"
                       />
                       <div className="cross-address-info flex items-center justify-between mt-2 p-2 rounded-lg">
                         <span className="text-xs text-gray-400">
-                          Sender: {!connected ? "Add You Wallet First" : address ? `${address.slice(0, 10)}...${address.slice(-6)}` : "Add You Wallet First"}
+                          Sender:{" "}
+                          {!connected
+                            ? "Add You Wallet First"
+                            : address
+                            ? `${address.slice(0, 10)}...${address.slice(-6)}`
+                            : "Add You Wallet First"}
                         </span>
                         <span className="text-xs text-gray-400">
-                          Receiver: {receiverAddress === RECEIVER_ADDRESS ? "Add Receiver Address First" : receiverAddress ? `${receiverAddress.slice(0, 10)}...${receiverAddress.slice(-6)}` : "Add Receiver Address First"}
+                          Receiver:{" "}
+                          {receiverAddress === RECEIVER_ADDRESS
+                            ? "Add Receiver Address First"
+                            : receiverAddress
+                            ? `${receiverAddress.slice(
+                                0,
+                                10
+                              )}...${receiverAddress.slice(-6)}`
+                            : "Add Receiver Address First"}
                         </span>
                       </div>
                     </div>
@@ -997,33 +1503,50 @@ export default function SwapPage() {
                     <div className="wallet-status disconnected mb-4 p-3 rounded-lg">
                       <div className="text-center">
                         {availableWallets.length === 0 ? (
-                                                      <div className="space-y-2">
-                              <p className="text-sm text-red-400">No wallets detected</p>
-                              <p className="text-xs text-gray-400">Please install a wallet extension</p>
-                              <div className="flex space-x-2 justify-center">
-                                <Button
-                                  onClick={() => window.open('https://petra.app/', '_blank')}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  Install Petra
-                                </Button>
-                                <Button
-                                  onClick={() => window.open('https://pontem.network/', '_blank')}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  Install Pontem
-                                </Button>
-                              </div>
-                            </div>
-                        ) : connectionStatus === 'error' ? (
                           <div className="space-y-2">
-                            <p className="text-sm text-red-400">Connection failed</p>
-                            <p className="text-xs text-gray-400">Please check your Petra extension</p>
+                            <p className="text-sm text-red-400">
+                              No wallets detected
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Please install a wallet extension
+                            </p>
+                            <div className="flex space-x-2 justify-center">
+                              <Button
+                                onClick={() =>
+                                  window.open("https://petra.app/", "_blank")
+                                }
+                                variant="outline"
+                                size="sm"
+                              >
+                                Install Petra
+                              </Button>
+                              <Button
+                                onClick={() =>
+                                  window.open(
+                                    "https://pontem.network/",
+                                    "_blank"
+                                  )
+                                }
+                                variant="outline"
+                                size="sm"
+                              >
+                                Install Pontem
+                              </Button>
+                            </div>
+                          </div>
+                        ) : connectionStatus === "error" ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-red-400">
+                              Connection failed
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Please check your Petra extension
+                            </p>
                           </div>
                         ) : (
-                          <p className="text-sm text-white">Connect your Aptos wallet to start trading</p>
+                          <p className="text-sm text-white">
+                            Connect your Aptos wallet to start trading
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1033,7 +1556,9 @@ export default function SwapPage() {
                   <div className="space-y-4">
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-300">You pay</label>
+                        <label className="text-sm font-medium text-gray-300">
+                          You pay
+                        </label>
                         <div className="flex items-center gap-2">
                           {connected && Number(fromBalance) > 0 && (
                             <button
@@ -1046,18 +1571,19 @@ export default function SwapPage() {
                             </button>
                           )}
                           <span className="text-xs text-gray-400">
-                            Balance: {
-                              connected 
-                                ? (isLoadingBalance 
-                                    ? "Loading..." 
-                                    : fromBalance || "0.00"
-                                  )
-                                : "0.00"
-                            }
+                            Balance:{" "}
+                            {connected
+                              ? isLoadingBalance
+                                ? "Loading..."
+                                : fromBalance || "0.00"
+                              : "0.00"}
                           </span>
                         </div>
                       </div>
-                      <div className="token-selector rounded-xl p-4" ref={fromDropdownRef}>
+                      <div
+                        className="token-selector rounded-xl p-4"
+                        ref={fromDropdownRef}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <Input
@@ -1069,20 +1595,33 @@ export default function SwapPage() {
                               disabled={!connected}
                             />
                             <div className="text-sm text-gray-400 mt-1">
-                              ≈ ${fromToken.symbol === "APT" && toToken.symbol === "USDC" && realPrice !== "-" 
-                                ? (parseFloat(fromAmount || "0") * parseFloat(realPrice.replace("$", ""))).toFixed(2)
-                                : "0.00"
-                              }
+                              ≈ $
+                              {fromToken.symbol === "APT" &&
+                              toToken.symbol === "USDC" &&
+                              realPrice !== "-"
+                                ? (
+                                    parseFloat(fromAmount || "0") *
+                                    parseFloat(realPrice.replace("$", ""))
+                                  ).toFixed(2)
+                                : "0.00"}
                             </div>
                           </div>
                           <button
-                            onClick={() => setShowFromDropdown(!showFromDropdown)}
+                            onClick={() =>
+                              setShowFromDropdown(!showFromDropdown)
+                            }
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
                             <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-                              <img src={fromToken.logoUrl || "/default-token.svg"} alt={fromToken.symbol} className="w-5 h-5 object-contain" />
+                              <img
+                                src={fromToken.logoUrl || "/default-token.svg"}
+                                alt={fromToken.symbol}
+                                className="w-5 h-5 object-contain"
+                              />
                             </div>
-                            <span className="ml-2 font-semibold text-white">{fromToken.symbol}</span>
+                            <span className="ml-2 font-semibold text-white">
+                              {fromToken.symbol}
+                            </span>
                             <ChevronDown className="w-4 h-4 ml-1 text-white" />
                           </button>
                         </div>
@@ -1090,30 +1629,45 @@ export default function SwapPage() {
 
                       {/* Token Dropdown */}
                       {showFromDropdown && (
-                        <div ref={fromDropdownRef} className="token-dropdown absolute top-full left-0 right-0 mt-2 rounded-xl z-50 max-h-48 overflow-y-auto">
+                        <div
+                          ref={fromDropdownRef}
+                          className="token-dropdown absolute top-full left-0 right-0 mt-2 rounded-xl z-50 max-h-48 overflow-y-auto"
+                        >
                           {tokens
                             .filter((token) => token.symbol !== toToken.symbol)
                             .map((token) => (
                               <button
                                 key={token.symbol}
                                 onClick={() => {
-                                  setFromToken(token)
-                                  setShowFromDropdown(false)
+                                  setFromToken(token);
+                                  setShowFromDropdown(false);
                                 }}
                                 className="token-option w-full flex items-center justify-between p-3 first:rounded-t-xl last:rounded-b-xl hover:bg-gray-700 transition-colors"
                               >
                                 <div className="flex items-center space-x-3">
                                   <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-                                    <img src={token.logoUrl || "/default-token.svg"} alt={token.symbol} className="w-5 h-5 object-contain" />
+                                    <img
+                                      src={
+                                        token.logoUrl || "/default-token.svg"
+                                      }
+                                      alt={token.symbol}
+                                      className="w-5 h-5 object-contain"
+                                    />
                                   </div>
                                   <div className="text-left">
-                                    <div className="text-white font-semibold">{token.symbol}</div>
-                                    <div className="text-xs text-gray-400">{token.name}</div>
+                                    <div className="text-white font-semibold">
+                                      {token.symbol}
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      {token.name}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="text-white text-sm font-medium">
-                                    {connected ? (balances[token.symbol] ?? "0.00") : "0.00"}
+                                    {connected
+                                      ? balances[token.symbol] ?? "0.00"
+                                      : "0.00"}
                                   </div>
                                   <div className="text-xs text-gray-400">
                                     Balance
@@ -1138,72 +1692,129 @@ export default function SwapPage() {
                     {/* To Token */}
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-300">You receive</label>
+                        <label className="text-sm font-medium text-gray-300">
+                          You receive
+                        </label>
                         <span className="text-xs text-gray-400">
-                          Balance: {
-                            connected 
-                              ? (isLoadingBalance 
-                                  ? "Loading..." 
-                                  : toBalance || "0.00"
-                                )
-                              : "0.00"
-                          }
+                          Balance:{" "}
+                          {connected
+                            ? isLoadingBalance
+                              ? "Loading..."
+                              : toBalance || "0.00"
+                            : "0.00"}
                         </span>
                       </div>
-                      <div className="token-selector rounded-xl p-4" ref={toDropdownRef}>
+                      <div
+                        className="token-selector rounded-xl p-4"
+                        ref={toDropdownRef}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="text-2xl font-bold text-white">
-                              {bestQuote && toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
+                              {bestQuote &&
+                              toToken &&
+                              fromAmount &&
+                              ((realPrice &&
+                                !isNaN(
+                                  parseFloat(realPrice.replace("$", ""))
+                                )) ||
+                                (marketData && marketData.length > 0))
                                 ? (() => {
                                     const amountA = parseFloat(fromAmount);
                                     // Ưu tiên realPrice nếu có, nếu không lấy từ marketData
-                                    let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
-                                      ? parseFloat(realPrice.replace("$", ""))
-                                      : null;
+                                    let P =
+                                      realPrice &&
+                                      !isNaN(
+                                        parseFloat(realPrice.replace("$", ""))
+                                      )
+                                        ? parseFloat(realPrice.replace("$", ""))
+                                        : null;
                                     if (!P && marketData) {
                                       // Tìm giá USD của fromToken trong marketData
                                       const pair = `${fromToken.symbol}/${toToken.symbol}`;
-                                      const found = marketData.find((row) => row.pair === pair);
+                                      const found = marketData.find(
+                                        (row) => row.pair === pair
+                                      );
                                       if (found && found.price) {
-                                        P = parseFloat(found.price.replace("$", ""));
+                                        P = parseFloat(
+                                          found.price.replace("$", "")
+                                        );
                                       }
                                     }
-                                    if (!P) return parseFloat(bestQuote.outputAmount).toFixed(6);
-                                    const fee = bestQuote.fee ? parseFloat(bestQuote.fee) / 100 : 0;
-                                    const priceImpact = bestQuote.priceImpact ? parseFloat(bestQuote.priceImpact) / 100 : 0;
-                                    const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
+                                    if (!P)
+                                      return parseFloat(
+                                        bestQuote.outputAmount
+                                      ).toFixed(6);
+                                    const fee = bestQuote.fee
+                                      ? parseFloat(bestQuote.fee) / 100
+                                      : 0;
+                                    const priceImpact = bestQuote.priceImpact
+                                      ? parseFloat(bestQuote.priceImpact) / 100
+                                      : 0;
+                                    const amountB =
+                                      amountA *
+                                      P *
+                                      (1 - fee) *
+                                      (1 - priceImpact);
                                     return amountB.toFixed(6);
                                   })()
                                 : bestQuote && toToken && bestQuote.outputAmount
-                                  ? parseFloat(bestQuote.outputAmount).toFixed(6)
-                                  : "0"}
+                                ? parseFloat(bestQuote.outputAmount).toFixed(6)
+                                : "0"}
                             </div>
                             <div className="text-sm text-gray-400 mt-1">
-                              ≈ ${
-                                bestQuote && toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
-                                  ? (() => {
-                                      const amountA = parseFloat(fromAmount);
-                                      let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
+                              ≈ $
+                              {bestQuote &&
+                              toToken &&
+                              fromAmount &&
+                              ((realPrice &&
+                                !isNaN(
+                                  parseFloat(realPrice.replace("$", ""))
+                                )) ||
+                                (marketData && marketData.length > 0))
+                                ? (() => {
+                                    const amountA = parseFloat(fromAmount);
+                                    let P =
+                                      realPrice &&
+                                      !isNaN(
+                                        parseFloat(realPrice.replace("$", ""))
+                                      )
                                         ? parseFloat(realPrice.replace("$", ""))
                                         : null;
-                                      if (!P && marketData) {
-                                        const pair = `${fromToken.symbol}/${toToken.symbol}`;
-                                        const found = marketData.find((row) => row.pair === pair);
-                                        if (found && found.price) {
-                                          P = parseFloat(found.price.replace("$", ""));
-                                        }
+                                    if (!P && marketData) {
+                                      const pair = `${fromToken.symbol}/${toToken.symbol}`;
+                                      const found = marketData.find(
+                                        (row) => row.pair === pair
+                                      );
+                                      if (found && found.price) {
+                                        P = parseFloat(
+                                          found.price.replace("$", "")
+                                        );
                                       }
-                                      if (!P) return parseFloat(bestQuote.outputAmount).toFixed(2);
-                                      const fee = bestQuote.fee ? parseFloat(bestQuote.fee) / 100 : 0;
-                                      const priceImpact = bestQuote.priceImpact ? parseFloat(bestQuote.priceImpact) / 100 : 0;
-                                      const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
-                                      return amountB.toFixed(2);
-                                    })()
-                                  : bestQuote && toToken && bestQuote.outputAmount && toToken.symbol === "USDC"
-                                    ? parseFloat(bestQuote.outputAmount).toFixed(2)
-                                    : "0.00"
-                              }
+                                    }
+                                    if (!P)
+                                      return parseFloat(
+                                        bestQuote.outputAmount
+                                      ).toFixed(2);
+                                    const fee = bestQuote.fee
+                                      ? parseFloat(bestQuote.fee) / 100
+                                      : 0;
+                                    const priceImpact = bestQuote.priceImpact
+                                      ? parseFloat(bestQuote.priceImpact) / 100
+                                      : 0;
+                                    const amountB =
+                                      amountA *
+                                      P *
+                                      (1 - fee) *
+                                      (1 - priceImpact);
+                                    return amountB.toFixed(2);
+                                  })()
+                                : bestQuote &&
+                                  toToken &&
+                                  bestQuote.outputAmount &&
+                                  toToken.symbol === "USDC"
+                                ? parseFloat(bestQuote.outputAmount).toFixed(2)
+                                : "0.00"}
                             </div>
                           </div>
                           <button
@@ -1211,9 +1822,15 @@ export default function SwapPage() {
                             className="swap-button-secondary flex items-center space-x-2 rounded-lg px-3 py-2 ml-4"
                           >
                             <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-                              <img src={toToken.logoUrl || "/default-token.svg"} alt={toToken.symbol} className="w-5 h-5 object-contain" />
+                              <img
+                                src={toToken.logoUrl || "/default-token.svg"}
+                                alt={toToken.symbol}
+                                className="w-5 h-5 object-contain"
+                              />
                             </div>
-                            <span className="ml-2 font-semibold text-white">{toToken.symbol}</span>
+                            <span className="ml-2 font-semibold text-white">
+                              {toToken.symbol}
+                            </span>
                             <ChevronDown className="w-4 h-4 ml-1 text-white" />
                           </button>
                         </div>
@@ -1223,19 +1840,32 @@ export default function SwapPage() {
                     {/* Thanh thời gian refresh nằm giữa You receive và Compare DEX Quotes */}
                     {fromAmount && (
                       <div className="mt-4 mb-4 flex items-center gap-2">
-                        <div className="flex-1" style={{ direction: 'rtl' }}>
+                        <div className="flex-1" style={{ direction: "rtl" }}>
                           {/* Progress bar value: */}
-                          <Progress value={100 * (refreshTimerMs / REFRESH_INTERVAL_MS)} className="h-2 bg-white [&_.bg-primary]:bg-yellow-500" />
+                          <Progress
+                            value={100 * (refreshTimerMs / REFRESH_INTERVAL_MS)}
+                            className="h-2 bg-white [&_.bg-primary]:bg-yellow-500"
+                          />
                           {/* Số giây hiển thị: */}
-                          <div className="text-xs text-gray-400 mt-1" style={{ direction: 'ltr' }}>
-                            Price will update in {Math.floor(refreshTimerMs / 1000)}s
+                          <div
+                            className="text-xs text-gray-400 mt-1"
+                            style={{ direction: "ltr" }}
+                          >
+                            Price will update in{" "}
+                            {Math.floor(refreshTimerMs / 1000)}s
                           </div>
                         </div>
                         <button
                           className="ml-2 px-3 py-1 rounded bg-yellow-500 text-black text-xs font-semibold hover:bg-yellow-400 transition float-right"
-                          onClick={() => { fetchQuotes(); setRefreshTimerMs(REFRESH_INTERVAL_MS) }}
+                          onClick={() => {
+                            fetchQuotes();
+                            setRefreshTimerMs(REFRESH_INTERVAL_MS);
+                          }}
                           title="Refresh quotes now"
-                          disabled={refreshTimerMs === REFRESH_INTERVAL_MS || isLoadingQuotes}
+                          disabled={
+                            refreshTimerMs === REFRESH_INTERVAL_MS ||
+                            isLoadingQuotes
+                          }
                           style={{ minWidth: 70 }}
                         >
                           {isLoadingQuotes ? "Refreshing..." : "Refresh"}
@@ -1261,56 +1891,170 @@ export default function SwapPage() {
                         {isLoadingQuotes ? (
                           <div className="swap-loading flex items-center space-x-2 p-2 rounded">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
-                            <span className="text-sm text-gray-400">Finding best route...</span>
+                            <span className="text-sm text-gray-400">
+                              Finding best route...
+                            </span>
                           </div>
                         ) : (
                           <div className="overflow-x-auto">
                             <table className="min-w-full text-xs text-left">
                               <thead>
                                 <tr className="text-gray-400 border-b border-gray-700">
-                                  <th className="py-1 pr-4 text-left w-32">DEX</th>
-                                  <th className="py-1 pr-4 text-right">Output</th>
-                                  <th className="py-1 pr-4 text-right">Fee (%)</th>
-                                  <th className="py-1 pr-4 text-right">Price Impact</th>
+                                  <th className="py-1 pr-4 text-left w-32">
+                                    DEX
+                                  </th>
+                                  <th className="py-1 pr-4 text-right">
+                                    Output
+                                  </th>
+                                  <th className="py-1 pr-4 text-right">
+                                    Fee (%)
+                                  </th>
+                                  <th className="py-1 pr-4 text-right">
+                                    Price Impact
+                                  </th>
                                   <th className="py-1 pr-4 text-left">Route</th>
+                                  <th className="py-1 pr-4 text-center">
+                                    Action
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {sortedQuotes.map((q, idx) => (
-                                  <tr key={q.dex + q.outputAmount} className={bestQuote && parseFloat(q.outputAmount) === parseFloat(bestQuote.outputAmount) ? "bg-yellow-900/20" : ""}>
-                                    <td className="py-1 pr-4 font-semibold text-white text-left w-32">
-                                      {getDexName(q)}
-                                      {bestQuote && parseFloat(q.outputAmount) === parseFloat(bestQuote.outputAmount) && (
-                                        <span className="ml-2 text-yellow-400 font-bold">Best</span>
-                                      )}
+                                {sortedQuotes.length === 0 ? (
+                                  <tr>
+                                    <td
+                                      colSpan={6}
+                                      className="text-center text-gray-400 py-4"
+                                    >
+                                      Không có DEX nào hỗ trợ swap cặp token này
+                                      hoặc pool không tồn tại trên smart
+                                      contract.
                                     </td>
-                                    <td className="py-1 pr-4 text-white text-right">
-  {toToken && fromAmount && ((realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))) || (marketData && marketData.length > 0))
-    ? (() => {
-        const amountA = parseFloat(fromAmount);
-        let P = realPrice && !isNaN(parseFloat(realPrice.replace("$", "")))
-          ? parseFloat(realPrice.replace("$", ""))
-          : null;
-        if (!P && marketData) {
-          const pair = `${fromToken.symbol}/${toToken.symbol}`;
-          const found = marketData.find((row) => row.pair === pair);
-          if (found && found.price) {
-            P = parseFloat(found.price.replace("$", ""));
-          }
-        }
-        if (!P) return parseFloat(q.outputAmount).toFixed(6);
-        const fee = q.fee ? parseFloat(q.fee) / 100 : 0;
-        const priceImpact = q.priceImpact ? parseFloat(q.priceImpact) / 100 : 0;
-        const amountB = amountA * P * (1 - fee) * (1 - priceImpact);
-        return amountB.toFixed(6);
-      })()
-    : q.outputAmount}
-</td>
-                                    <td className="py-1 pr-4 text-white text-right">{q.fee}</td>
-                                    <td className="py-1 pr-4 text-white text-right">{q.priceImpact}</td>
-                                    <td className="py-1 pr-4 text-white text-left">{q.route.join(" → ")}</td>
                                   </tr>
-                                ))}
+                                ) : (
+                                  sortedQuotes.map((q, idx) => {
+                                    // Debug log cho từng row
+                                    console.log(
+                                      `🔍 DEBUG: Row ${idx}: ${q.dex} - ${
+                                        q.outputAmount
+                                      } - isFirst: ${idx === 0}`
+                                    );
+                                    return (
+                                      <tr
+                                        key={q.dex + q.outputAmount}
+                                        className={
+                                          idx === 0 ? "bg-yellow-900/20" : ""
+                                        }
+                                      >
+                                        <td className="py-1 pr-4 font-semibold text-white text-left w-32">
+                                          {getDexName(q)}
+                                          {idx === 0 && (
+                                            <span className="ml-2 text-yellow-400 font-bold">
+                                              Best
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="py-1 pr-4 text-white text-right">
+                                          {toToken &&
+                                          fromAmount &&
+                                          ((realPrice &&
+                                            !isNaN(
+                                              parseFloat(
+                                                realPrice.replace("$", "")
+                                              )
+                                            )) ||
+                                            (marketData &&
+                                              marketData.length > 0))
+                                            ? (() => {
+                                                const amountA =
+                                                  parseFloat(fromAmount);
+                                                let P =
+                                                  realPrice &&
+                                                  !isNaN(
+                                                    parseFloat(
+                                                      realPrice.replace("$", "")
+                                                    )
+                                                  )
+                                                    ? parseFloat(
+                                                        realPrice.replace(
+                                                          "$",
+                                                          ""
+                                                        )
+                                                      )
+                                                    : null;
+                                                if (!P && marketData) {
+                                                  const pair = `${fromToken.symbol}/${toToken.symbol}`;
+                                                  const found = marketData.find(
+                                                    (row) => row.pair === pair
+                                                  );
+                                                  if (found && found.price) {
+                                                    P = parseFloat(
+                                                      found.price.replace(
+                                                        "$",
+                                                        ""
+                                                      )
+                                                    );
+                                                  }
+                                                }
+                                                if (!P)
+                                                  return parseFloat(
+                                                    q.outputAmount
+                                                  ).toFixed(6);
+                                                const fee = q.fee
+                                                  ? parseFloat(q.fee) / 100
+                                                  : 0;
+                                                const priceImpact =
+                                                  q.priceImpact
+                                                    ? parseFloat(
+                                                        q.priceImpact
+                                                      ) / 100
+                                                    : 0;
+                                                const amountB =
+                                                  amountA *
+                                                  P *
+                                                  (1 - fee) *
+                                                  (1 - priceImpact);
+                                                return amountB.toFixed(6);
+                                              })()
+                                            : q.outputAmount}
+                                        </td>
+                                        <td className="py-1 pr-4 text-white text-right">
+                                          {q.fee}
+                                        </td>
+                                        <td className="py-1 pr-4 text-white text-right">
+                                          {q.priceImpact}
+                                        </td>
+                                        <td className="py-1 pr-4 text-white text-left">
+                                          {Array.isArray(q.route)
+                                            ? q.route.join(" → ")
+                                            : q.dex}
+                                        </td>
+                                        <td className="py-1 pr-4 text-center">
+                                          <button
+                                            onClick={() => executeSwapOnDex(q)}
+                                            disabled={
+                                              !connected ||
+                                              !fromAmount ||
+                                              Number.parseFloat(fromAmount) <=
+                                                0 ||
+                                              isSwapping ||
+                                              Number.parseFloat(
+                                                q.outputAmount
+                                              ) <= 0 ||
+                                              Number(fromBalance) <
+                                                Number(fromAmount)
+                                            }
+                                            className="px-2 py-1 text-xs bg-yellow-500 text-black rounded hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                            title={`Swap on ${getDexName(q)}`}
+                                          >
+                                            {isSwapping
+                                              ? "Swapping..."
+                                              : "Swap"}
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
                               </tbody>
                             </table>
                           </div>
@@ -1326,22 +2070,31 @@ export default function SwapPage() {
                         !fromAmount ||
                         Number.parseFloat(fromAmount) <= 0 ||
                         isSwapping ||
-                        (swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === "")) ||
-                        !bestQuote || Number.parseFloat(bestQuote.outputAmount) <= 0 ||
-                        (Number(fromBalance) < Number(fromAmount))
+                        (swapMode === "cross-address" &&
+                          (!receiverAddress ||
+                            receiverAddress === RECEIVER_ADDRESS ||
+                            receiverAddress.trim() === "")) ||
+                        !bestQuote ||
+                        Number.parseFloat(bestQuote.outputAmount) <= 0 ||
+                        Number(fromBalance) < Number(fromAmount)
                       }
                       className="swap-execute-button w-full font-bold py-4 rounded-xl text-lg"
                     >
                       {isSwapping ? (
                         <div className="flex items-center justify-center">
                           <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                          {swapMode === "cross-address" ? "Cross-Address Swapping..." : "Swapping..."}
+                          {swapMode === "cross-address"
+                            ? "Cross-Address Swapping..."
+                            : "Swapping..."}
                         </div>
                       ) : !connected ? (
                         "Connect Aptos Wallet"
                       ) : !fromAmount || Number.parseFloat(fromAmount) <= 0 ? (
                         "Enter Amount"
-                      ) : swapMode === "cross-address" && (!receiverAddress || receiverAddress === RECEIVER_ADDRESS || receiverAddress.trim() === "") ? (
+                      ) : swapMode === "cross-address" &&
+                        (!receiverAddress ||
+                          receiverAddress === RECEIVER_ADDRESS ||
+                          receiverAddress.trim() === "") ? (
                         "Add Receiver Address"
                       ) : swapMode === "cross-address" ? (
                         `Swap ${fromToken.symbol} → ${toToken.symbol} (Cross-Address)`
@@ -1351,19 +2104,40 @@ export default function SwapPage() {
                     </Button>
 
                     {/* Cross-Address Info */}
-                    {swapMode === "cross-address" && connected && fromAmount && (
-                      <div className="cross-address-info mt-3 p-3 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Users className="w-4 h-4" />
-                          <span className="text-sm font-medium">Cross-Address Swap</span>
+                    {swapMode === "cross-address" &&
+                      connected &&
+                      fromAmount && (
+                        <div className="cross-address-info mt-3 p-3 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Users className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              Cross-Address Swap
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-300 space-y-1">
+                            <div>
+                              From:{" "}
+                              {address
+                                ? `${address.slice(0, 10)}...${address.slice(
+                                    -6
+                                  )}`
+                                : "Add You Wallet First"}
+                            </div>
+                            <div>
+                              To:{" "}
+                              {receiverAddress === RECEIVER_ADDRESS
+                                ? "Add Receiver Address First"
+                                : receiverAddress
+                                ? `${receiverAddress.slice(
+                                    0,
+                                    10
+                                  )}...${receiverAddress.slice(-6)}`
+                                : "Add Receiver Address First"}
+                            </div>
+                            <div>Using: Aptos DEX Aggregator</div>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-300 space-y-1">
-                          <div>From: {address ? `${address.slice(0, 10)}...${address.slice(-6)}` : "Add You Wallet First"}</div>
-                          <div>To: {receiverAddress === RECEIVER_ADDRESS ? "Add Receiver Address First" : receiverAddress ? `${receiverAddress.slice(0, 10)}...${receiverAddress.slice(-6)}` : "Add Receiver Address First"}</div>
-                          <div>Using: Aptos DEX Aggregator</div>
-                        </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </CardContent>
               </Card>
@@ -1374,21 +2148,40 @@ export default function SwapPage() {
               {/* Market Overview */}
               <Card className="swap-card">
                 <CardContent className="p-4">
-                  <h3 className="text-white font-semibold mb-3">Market Overview</h3>
+                  <h3 className="text-white font-semibold mb-3">
+                    Market Overview
+                  </h3>
                   <table className="w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="text-left text-gray-400 font-normal">Pair</th>
-                        <th className="text-right text-gray-400 font-normal">Price</th>
-                        <th className="text-right text-gray-400 font-normal">24h Change</th>
+                        <th className="text-left text-gray-400 font-normal">
+                          Pair
+                        </th>
+                        <th className="text-right text-gray-400 font-normal">
+                          Price
+                        </th>
+                        <th className="text-right text-gray-400 font-normal">
+                          24h Change
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {marketData.map((row) => (
-                        <tr key={row.pair} className="border-b border-gray-800 last:border-0">
+                        <tr
+                          key={row.pair}
+                          className="border-b border-gray-800 last:border-0"
+                        >
                           <td className="py-2 text-white">{row.pair}</td>
-                          <td className="py-2 text-right text-white">{row.price}</td>
-                          <td className={`py-2 text-right font-semibold ${row.positive ? "text-green-400" : "text-red-400"}`}>{row.change}</td>
+                          <td className="py-2 text-right text-white">
+                            {row.price}
+                          </td>
+                          <td
+                            className={`py-2 text-right font-semibold ${
+                              row.positive ? "text-green-400" : "text-red-400"
+                            }`}
+                          >
+                            {row.change}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1398,18 +2191,24 @@ export default function SwapPage() {
 
               <Card className="swap-card">
                 <CardContent className="p-4">
-                  <h3 className="text-white font-semibold mb-3">Platform Stats</h3>
+                  <h3 className="text-white font-semibold mb-3">
+                    Platform Stats
+                  </h3>
                   <div className="space-y-3">
                     <div className="platform-stat flex justify-between">
                       <span className="text-gray-400 text-sm">24h Volume</span>
                       <span className="text-white font-medium">$2.4M</span>
                     </div>
                     <div className="platform-stat flex justify-between">
-                      <span className="text-gray-400 text-sm">Total Liquidity</span>
+                      <span className="text-gray-400 text-sm">
+                        Total Liquidity
+                      </span>
                       <span className="text-white font-medium">$45.2M</span>
                     </div>
                     <div className="platform-stat flex justify-between">
-                      <span className="text-gray-400 text-sm">Active Pairs</span>
+                      <span className="text-gray-400 text-sm">
+                        Active Pairs
+                      </span>
                       <span className="text-white font-medium">156</span>
                     </div>
                   </div>
@@ -1422,9 +2221,9 @@ export default function SwapPage() {
 
       {/* Chat Button - Only visible when user is logged in */}
       <ChatButton user={user} />
-      
+
       {/* Debug Component - Only in development */}
-      {process.env.NODE_ENV === 'development' && <WalletDebug />}
+      {process.env.NODE_ENV === "development" && <WalletDebug />}
     </div>
-  )
+  );
 }

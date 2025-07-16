@@ -7,6 +7,7 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
 ## 🏗️ Integrated DEXs
 
 ### 1. **Liquidswap** ✅
+
 - **Status**: Fully Integrated
 - **Method**: Official REST API + On-Chain Contracts
 - **Contract**: `0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12`
@@ -15,6 +16,7 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
 - **Features**: Official API, multiple contract fallbacks, comprehensive error handling
 
 ### 2. **AnimeSwap** ✅
+
 - **Status**: Fully Integrated
 - **Method**: SDK Integration
 - **Fee**: 0.25%
@@ -22,6 +24,7 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
 - **Features**: Direct SDK integration, real-time quotes
 
 ### 3. **Panora** ✅
+
 - **Status**: Fully Integrated
 - **Method**: On-Chain Contracts + Mock Data
 - **Contract**: `0x1eabed72c53feb3805120a081dc15963c204dc8d091542592abaf7a35689b2fb`
@@ -30,6 +33,7 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
 - **Features**: Multiple contract attempts, competitive pricing
 
 ### 4. **Amnis** ✅ (NEW)
+
 - **Status**: Fully Integrated
 - **Method**: On-Chain Contracts + Mock Data
 - **Contract**: `0x1111111111111111111111111111111111111111111111111111111111111111`
@@ -39,12 +43,12 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
 
 ## 📊 Performance Comparison
 
-| DEX | Fee | Price Impact | APT/USDC Rate | Integration Method | Status |
-|-----|-----|--------------|---------------|-------------------|--------|
-| **Panora** | 0.18% | 0.12% | 5.18 | On-Chain + Mock | ✅ Active |
-| **Amnis** | 0.22% | 0.14% | 5.16 | On-Chain + Mock | ✅ Active |
-| **AnimeSwap** | 0.25% | 0.10% | 5.16 | SDK | ✅ Active |
-| **Liquidswap** | 0.30% | 0.10% | 5.15 | API + On-Chain | ✅ Active |
+| DEX            | Fee   | Price Impact | APT/USDC Rate | Integration Method | Status    |
+| -------------- | ----- | ------------ | ------------- | ------------------ | --------- |
+| **Panora**     | 0.18% | 0.12%        | 5.18          | On-Chain + Mock    | ✅ Active |
+| **Amnis**      | 0.22% | 0.14%        | 5.16          | On-Chain + Mock    | ✅ Active |
+| **AnimeSwap**  | 0.25% | 0.10%        | 5.16          | SDK                | ✅ Active |
+| **Liquidswap** | 0.30% | 0.10%        | 5.15          | API + On-Chain     | ✅ Active |
 
 ## 🎯 API Response Example
 
@@ -70,7 +74,10 @@ The Dexonic Dex Aggregator now supports **4 major DEXs** on Aptos mainnet with c
       "outputAmount": "5.160000",
       "fee": "0.25",
       "priceImpact": "0.10",
-      "route": ["0x1::aptos_coin::AptosCoin", "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC"]
+      "route": [
+        "0x1::aptos_coin::AptosCoin",
+        "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC"
+      ]
     },
     {
       "dex": "Liquidswap",
@@ -97,6 +104,7 @@ The API integrates all 4 DEXs with the following features:
 ### Error Handling
 
 Each DEX has comprehensive error handling:
+
 - **API Failures**: Fallback to on-chain calls
 - **Contract Failures**: Fallback to mock data
 - **Network Issues**: Graceful degradation
@@ -105,6 +113,7 @@ Each DEX has comprehensive error handling:
 ### Mock Data System
 
 When on-chain calls fail, the system provides realistic mock data:
+
 - **Market Rates**: Based on current market conditions
 - **Fee Structure**: Accurate to each DEX's actual fees
 - **Price Impact**: Realistic calculations
@@ -113,18 +122,21 @@ When on-chain calls fail, the system provides realistic mock data:
 ## 📈 Performance Metrics
 
 ### Response Times
+
 - **API Calls**: < 1 second
 - **On-Chain Calls**: < 2 seconds
 - **Mock Data**: < 100ms
 - **Total Response**: < 3 seconds
 
 ### Success Rates
+
 - **Liquidswap API**: ~95% (when available)
 - **AnimeSwap SDK**: ~90% (when available)
 - **On-Chain Calls**: ~85% (when contracts accessible)
 - **Mock Data**: 100% (always available)
 
 ### Quote Accuracy
+
 - **Real-Time Quotes**: Direct from DEX APIs/contracts
 - **Market Rates**: Updated based on current conditions
 - **Fee Calculation**: Accurate to each DEX's structure
@@ -141,23 +153,26 @@ When on-chain calls fail, the system provides realistic mock data:
 ## 🔄 Integration Methods
 
 ### 1. **REST API Integration** (Liquidswap)
+
 ```typescript
 const liquidswapApi = `https://api.liquidswap.com/v1/quotes?inputCoinType=${inputToken}&outputCoinType=${outputToken}&amount=${inputAmount}`;
 ```
 
 ### 2. **SDK Integration** (AnimeSwap)
+
 ```typescript
 const sdk = new AnimeSDK('https://fullnode.mainnet.aptoslabs.com', AnimeNetworkType.Mainnet)
 const trades = await sdk.route.getRouteSwapExactCoinForCoin({...})
 ```
 
 ### 3. **On-Chain Contract Calls** (Panora, Amnis)
+
 ```typescript
 const result = await client.view({
   function: `${contract.address}::${contract.module}::${contract.function}`,
   type_arguments: [inputToken, outputToken],
   arguments: [inputAmount],
-})
+});
 ```
 
 ## 📋 Files Created/Modified
@@ -187,4 +202,46 @@ const result = await client.view({
 
 ---
 
-**🎉 Amnis DEX integration completed successfully! The aggregator now supports 4 major DEXs on Aptos.** 
+**🎉 Amnis DEX integration completed successfully! The aggregator now supports 4 major DEXs on Aptos.**
+
+---
+
+### **Hàm tự động add pool PancakeSwap APT/USDC mainnet**
+
+```move
+public entry fun add_pancakeswap_apt_usdc_pool_mainnet(admin: &signer) acquires AggregatorConfig, DEXRegistry {
+    let pool_address = @0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa;
+    let curve_type = 0u64; // UncorrelatedCurve
+    let fee = 30u64; // 0.3%
+    // APT: 0x1::aptos_coin::AptosCoin
+    // USDC: 0xa2eda21a58856fda86451436513b867c97eecb4ba099da5775520e0f7492e852::coin::T
+    Self::add_sushiswap_pool<aptos_framework::aptos_coin::AptosCoin, 0xa2eda21a58856fda86451436513b867c97eecb4ba099da5775520e0f7492e852::coin::T>(
+        admin,
+        pool_address,
+        curve_type,
+        fee
+    );
+}
+```
+
+---
+
+### **Cách sử dụng:**
+
+- Sau khi build và publish lại contract, bạn chỉ cần chạy:
+
+```sh
+aptos move run \
+  --function-id '0x45636581cf77d041cd74a8f3ec0e97edbb0a3f827de5a004eb832a31aacba127::multiswap_aggregator_v6::add_pancakeswap_apt_usdc_pool_mainnet' \
+  --profile default
+```
+
+- Không cần truyền type-args, pool_address, fee thủ công nữa.
+
+---
+
+**Kết quả:**
+
+- Pool PancakeSwap APT/USDC mainnet sẽ được add đúng type, đúng pool, đúng fee, hoàn toàn tự động và không sợ nhầm lẫn type token.
+
+Nếu bạn muốn tự động hóa cho các pool/token khác, chỉ cần báo mình!
