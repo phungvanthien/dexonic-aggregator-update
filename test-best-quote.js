@@ -8,11 +8,11 @@ const testQuotes = [
     route: ['Liquidswap']
   },
   {
-    dex: 'Aggregator',
+    dex: 'Dexonic Dex Aggregator',
     outputAmount: '0.189456',
     fee: '0.25',
     priceImpact: '0.60',
-    route: ['Aggregator']
+    route: ['Dexonic Dex Aggregator']
   },
   {
     dex: 'Thala',

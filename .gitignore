@@ -29,3 +29,8 @@ next-env.d.ts
 # smart contract
 /deployment
 */*.log
+
+# Ignore environment files
+.env
+.env.*
+env.*

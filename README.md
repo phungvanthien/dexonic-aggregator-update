@@ -48,7 +48,6 @@ DexonicDexAggregator/
 The smart contracts have been deployed to Aptos mainnet:
 
 - **Aggregator Contract**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::multiswap_aggregator_v2`
-- **AptosDoge Token**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge`
 
 See `deploy.md` for detailed deployment information.
 
@@ -63,7 +62,6 @@ See `deploy.md` for detailed deployment information.
 
 ### Supported Tokens
 - **APT** (Aptos Coin)
-- **APDOGE** (AptosDoge)
 - **USDC** (USD Coin)
 - **USDT** (Tether USD)
 - **WETH** (Wrapped ETH)
@@ -105,7 +103,7 @@ Content-Type: application/json
 
 {
   "inputToken": "0x1::aptos_coin::AptosCoin",
-  "outputToken": "0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge",
+  "outputToken": "<output_token_address>",
   "inputAmount": "10000000"
 }
 ```

@@ -1,10 +1,9 @@
-# 🎉 Aptos DEX Aggregator - Initialization Complete!
+# 🎉 Dexonic Dex Aggregator - Initialization Complete!
 
 ## ✅ What's Been Accomplished
 
 ### 1. Contract Deployment ✅
 - **Aggregator Contract**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::multiswap_aggregator_v2`
-- **AptosDoge Token**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge`
 - **Network**: Aptos Testnet
 - **Status**: Successfully deployed and initialized
 
@@ -67,11 +66,6 @@
     "max_slippage": "500", // 5%
     "paused": false,
     "supported_dexs": "0x0102" // Liquidswap (1) and Econia (2)
-  },
-  "AptosDoge": {
-    "symbol": "APDOGE",
-    "decimals": 8,
-    "supply": "0" // Ready for minting
   }
 }
 ```
@@ -178,4 +172,4 @@ aptos move view --function-id 0xe92e80d3819badc3c8881b1eaafc43f2563bac722b018306
 
 ---
 
-**🎉 Congratulations! Your Aptos DEX Aggregator is ready to use!** 
+**🎉 Congratulations! Your Dexonic Dex Aggregator is ready to use!** 

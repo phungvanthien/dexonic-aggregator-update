@@ -1,6 +1,6 @@
-# Aptos DEX Aggregator Deployment Guide
+# Dexonic Dex Aggregator Deployment Guide
 
-This guide will help you deploy the Aptos DEX Aggregator contracts to the Aptos testnet and initialize them for use.
+This guide will help you deploy the Dexonic Dex Aggregator contracts to the Aptos testnet and initialize them for use.
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ node deploy-contract.js
 
 1. **Navigate to the contract directory:**
    ```bash
-   cd aptos-multiswap-aggregator
+   cd dexonic-dex-aggregator
    ```
 
 2. **Initialize Aptos CLI (if not done already):**
@@ -175,7 +175,7 @@ Update the following files with your deployed contract address:
    - Get testnet APT from the faucet: https://aptoslabs.com/testnet-faucet
 
 3. **"Module not found"**
-   - Make sure you're in the correct directory: `aptos-multiswap-aggregator`
+   - Make sure you're in the correct directory: `dexonic-dex-aggregator`
    - Run `aptos move compile` before publishing
 
 4. **"Admin access denied"**

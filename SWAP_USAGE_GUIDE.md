@@ -2,7 +2,7 @@
 
 ## 🎯 **Tính năng Swap đã hoạt động!**
 
-Dự án AptosSwap đã được thiết lập thành công và tính năng swap đang hoạt động tại: **http://localhost:3000/swap**
+Dự án Dexonic Dex Aggregator đã được thiết lập thành công và tính năng swap đang hoạt động tại: **http://localhost:3000/swap**
 
 ---
 
@@ -47,7 +47,7 @@ http://localhost:3000/swap
 3. Phê duyệt kết nối
 
 ### **Bước 3: Chọn token**
-1. **From Token**: Chọn token muốn bán (APT, APDOGE, USDC, USDT, WETH)
+1. **From Token**: Chọn token muốn bán (APT, USDC, USDT, WETH)
 2. **To Token**: Chọn token muốn mua
 3. Nhập số lượng token
 
@@ -83,7 +83,6 @@ http://localhost:3000/swap
 | Token | Symbol | Address | Decimals |
 |-------|--------|---------|----------|
 | Aptos | APT | `0x1::aptos_coin::AptosCoin` | 8 |
-| AptosDoge | APDOGE | `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge` | 8 |
 | USD Coin | USDC | `0xa2eda21a58856fda86451436513b867c97eecb4ba099da5775520e0f7492e852::coin::T` | 6 |
 | Tether USD | USDT | `0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b::coin::T` | 6 |
 | Wrapped ETH | WETH | `0xcc8a89c8dce9693d354449f1f73e60e14e347417854f029db5bc8e7454008abb::coin::T` | 8 |

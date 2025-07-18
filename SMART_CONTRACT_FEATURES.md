@@ -62,12 +62,6 @@ Input: 0x1::aptos_coin::AptosCoin
 Output: 0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT
 ```
 
-#### **APT/APDOGE** (Default testing pool)
-```move
-Input: 0x1::aptos_coin::AptosCoin
-Output: 0xdc73b5e73610decca7b5821c43885eeb0defe3e8fbc0ce6cc233c8eff00b03fc::aptosdoge::AptosDoge
-```
-
 ### **2. Cặp giao dịch có thể thêm (Dynamic)**
 
 #### **USDC/USDT**

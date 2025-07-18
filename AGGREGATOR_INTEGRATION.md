@@ -1,14 +1,13 @@
-# Aptos DEX Aggregator Integration
+# Dexonic Dex Aggregator Integration
 
 ## Overview
 
-This document describes the integration of the **Aptos DEX Aggregator** into the swap page, enabling cross-address swaps between specified addresses using the deployed smart contracts.
+This document describes the integration of the **Dexonic Dex Aggregator** into the swap page, enabling cross-address swaps between specified addresses using the deployed smart contracts.
 
 ## 🏗️ Architecture
 
 ### Smart Contracts
 - **Aggregator**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::multiswap_aggregator`
-- **AptosDoge Token**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8::aptosdoge::AptosDoge`
 
 ### Addresses
 - **Sender**: `0xe92e80d3819badc3c8881b1eaafc43f2563bac722b0183068ffa90af27917bd8`
@@ -33,7 +32,6 @@ This document describes the integration of the **Aptos DEX Aggregator** into the
 
 ### 4. Token Support
 - **APT**: Native Aptos coin
-- **APDOGE**: Custom AptosDoge token
 - **USDC**: USD Coin
 - **USDT**: Tether USD
 - **WETH**: Wrapped Ethereum

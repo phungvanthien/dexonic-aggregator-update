@@ -1,7 +1,7 @@
 # Panora/Thala Smart Contract Integration
 
 ## Tổng quan
-Đã tích hợp **Panora smart contract trên Thala** vào dự án Dex Aggregator để lấy quote thực tế từ blockchain.
+Đã tích hợp **Panora smart contract trên Thala** vào dự án Dexonic Dex Aggregator để lấy quote thực tế từ blockchain.
 
 ## Thông tin Smart Contract
 

@@ -1,7 +1,7 @@
 # AnimeSwap Smart Contract Integration
 
 ## Tổng quan
-Đã tích hợp **AnimeSwap smart contract** vào dự án Dex Aggregator để lấy quote thực tế từ blockchain.
+Đã tích hợp **AnimeSwap smart contract** vào dự án Dexonic Dex Aggregator để lấy quote thực tế từ blockchain.
 
 ## Thông tin Smart Contract
 

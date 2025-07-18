@@ -35,11 +35,6 @@
 - `setup_default_pools()` - Setup default liquidity pools
 - `get_config()` - Get aggregator configuration ✅
 
-### AptosDoge Token Functions
-- `initialize()` - Initialize the AptosDoge token
-- `mint()` - Mint new tokens (admin only)
-- `transfer()` - Transfer tokens between addresses
-
 ## Integration Details
 
 ### Frontend Configuration

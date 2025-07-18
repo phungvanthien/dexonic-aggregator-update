@@ -6,7 +6,7 @@ const path = require('path');
 const CONTRACT_DIR = './aptos-multiswap-aggregator';
 const APTOS_CONFIG_FILE = path.join(CONTRACT_DIR, 'aptos.config.toml');
 
-console.log('🚀 Starting Aptos DEX Aggregator Deployment...\n');
+console.log('🚀 Starting Dexonic Dex Aggregator Deployment...\n');
 
 try {
   // Step 1: Check if we're in the right directory
@@ -81,9 +81,6 @@ try {
       console.log(`🔗 View on explorer: https://explorer.aptoslabs.com/account/${address}?network=testnet`);
       console.log(`\n📝 Next steps:`);
       console.log(`1. Initialize the aggregator: aptos move run --function-id ${address}::multiswap_aggregator_v2::initialize`);
-      console.log(`2. Initialize AptosDoge: aptos move run --function-id ${address}::aptosdoge::initialize`);
-      console.log(`3. Setup pools: aptos move run --function-id ${address}::multiswap_aggregator_v2::setup_default_pools`);
-      console.log(`4. Mint AptosDoge: aptos move run --function-id ${address}::aptosdoge::mint --args ${address} "u64:1000000000"`);
     }
   } catch (error) {
     console.log('⚠️  Could not retrieve deployment information');

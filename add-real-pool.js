@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Add Real APT/USDC Pool to Aggregator Contract
+ * Add Real APT/USDC Pool to Dexonic Dex Aggregator
  * 
  * Based on the Liquidswap mainnet data we found:
  * - Pool Address: 0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa
@@ -24,7 +24,7 @@ const LIQUIDITY_X = 1000000; // APT (estimated)
 const LIQUIDITY_Y = 8000000; // USDC (estimated)
 const FEE_BPS = 30; // 0.3% fee
 
-console.log('🔧 Adding Real APT/USDC Pool to Aggregator Contract...\n');
+console.log('🔧 Adding Real APT/USDC Pool to Dexonic Dex Aggregator...\n');
 
 console.log('📋 Pool Information:');
 console.log('📍 Pool Address:', POOL_ADDRESS);

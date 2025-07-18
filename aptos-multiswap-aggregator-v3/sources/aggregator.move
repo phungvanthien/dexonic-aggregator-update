@@ -10,14 +10,6 @@ module 0x13a0e1a314426849cf4ac86edb586b38e6271c1245242077c4a873b4bdc942c9::multi
     use aptos_std::table::{Self, Table};
     use aptos_std::type_info;
     use aptos_framework::aptos_coin::AptosCoin;
-    // Import PancakeSwap module
-    // XÓA: use 0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa::swap;
-
-    // DEX integration placeholders (will be replaced with actual imports)
-    // Liquidswap address: 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12
-    // Econia address: 0xc0deb00c405f84c85dc13442e305df75d9b58c5481e6824349a528b0b78d4bb5
-    
-
 
     // Mock token structs for testing
     struct USDC has key {}
@@ -46,8 +38,6 @@ module 0x13a0e1a314426849cf4ac86edb586b38e6271c1245242077c4a873b4bdc942c9::multi
     const DEX_AMNIS: u8 = 4;
     const DEX_ANIMESWAP: u8 = 5;
     const DEX_SUSHISWAP: u8 = 6;
-    // 1. Thêm DEX ID cho PancakeSwap
-    // XÓA: const DEX_PANCAKESWAP: u8 = 7;
 
     // Configuration constants
     const MAX_HOPS: u64 = 3;
@@ -327,14 +317,6 @@ module 0x13a0e1a314426849cf4ac86edb586b38e6271c1245242077c4a873b4bdc942c9::multi
                 vector::push_back(&mut quotes, option::extract(&mut sushiswap_quote));
             };
         };
-
-        // XÓA: Query PancakeSwap
-        // if (vector::contains(&config.supported_dexs, &DEX_PANCAKESWAP)) {
-        //     let pancakeswap_quote = get_pancakeswap_quote<InputCoin, OutputCoin>(input_amount);
-        //     if (option::is_some(&pancakeswap_quote)) {
-        //         vector::push_back(&mut quotes, option::extract(&mut pancakeswap_quote));
-        //     };
-        // };
 
         quotes
     }

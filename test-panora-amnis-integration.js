@@ -70,7 +70,7 @@ async function testGetBestQuote() {
         };
 
         console.log(`🏆 Best DEX: ${dexNames[response[1]] || 'Unknown'}`);
-        console.log(`💰 Output: ${response[0]} APDOGE`);
+        console.log(`💰 Output: ${response[0]} APT`);
         console.log(`📈 Price Impact: ${response[2]} basis points`);
         console.log(`💸 Fee: ${response[3]} basis points`);
 
@@ -104,7 +104,7 @@ async function testPanoraQuote() {
 
         if (response[1] === 3) {
             console.log("✅ Panora quote found!");
-            console.log(`💰 Output: ${response[0]} APDOGE`);
+            console.log(`💰 Output: ${response[0]} APT`);
             console.log(`📈 Price Impact: ${response[2]} basis points`);
             console.log(`💸 Fee: ${response[3]} basis points`);
             console.log(`🌊 Liquidity Score: ${response[6]}`);
@@ -142,7 +142,7 @@ async function testAmnisQuote() {
 
         if (response[1] === 4) {
             console.log("✅ Amnis quote found!");
-            console.log(`💰 Output: ${response[0]} APDOGE`);
+            console.log(`💰 Output: ${response[0]} APT`);
             console.log(`📈 Price Impact: ${response[2]} basis points`);
             console.log(`💸 Fee: ${response[3]} basis points`);
             console.log(`🌊 Liquidity Score: ${response[6]}`);
@@ -181,7 +181,7 @@ async function testMultiDEXComparison() {
 
             console.log(`\n💰 Amount: ${amount / 1000000} APT`);
             console.log(`🏆 Best DEX: ${dexNames[response[1]]}`);
-            console.log(`📊 Output: ${response[0]} APDOGE`);
+            console.log(`📊 Output: ${response[0]} APT`);
             console.log(`📈 Price Impact: ${response[2]} bp`);
             console.log(`💸 Fee: ${response[3]} bp`);
 

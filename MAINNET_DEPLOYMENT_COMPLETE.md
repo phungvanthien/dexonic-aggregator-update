@@ -2,7 +2,7 @@
 
 ## ✅ Deployment Summary
 
-Your Dex Aggregator smart contract has been successfully deployed to Aptos mainnet!
+Your Dexonic Dex Aggregator smart contract has been successfully deployed to Aptos mainnet!
 
 ### 📋 Deployment Details
 
@@ -41,18 +41,6 @@ Your Dex Aggregator smart contract has been successfully deployed to Aptos mainn
 - Min Liquidity Threshold: 1000 USD
 
 ### 🏊‍♂️ Default Pools Setup
-
-**Liquidswap Pools**:
-- APT/APDOGE: 100M liquidity, 0.3% fee
-- APDOGE/APT: 100M liquidity, 0.3% fee
-
-**Panora Pools**:
-- APT/APDOGE: 80M liquidity, 0.25% fee
-- APDOGE/APT: 80M liquidity, 0.25% fee
-
-**Amnis Pools**:
-- APT/APDOGE: 60M liquidity, 0.2% fee
-- APDOGE/APT: 60M liquidity, 0.2% fee
 
 ### 🔧 Frontend Integration
 
